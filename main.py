@@ -13,7 +13,10 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from core.colors import (
     print_banner, print_success, print_error, print_warning,
-    print_info, print_section, print_table, cprint, Colors, pause
+    print_info, print_section, print_table, cprint, Colors, pause,
+    print_header, print_footer, print_scan_start, print_scan_complete,
+    print_vuln_found, print_loader, print_status, print_target,
+    print_result, print_separator, print_subsection, Icons
 )
 from core.logger import get_logger
 from core.database import get_database
@@ -557,27 +560,27 @@ Examples:
     
     def _show_stats(self):
         """Show database statistics"""
-        print_section("Database Statistics")
+        print_header("Database Statistics")
         
         stats = self.db.get_statistics()
         
-        print_info(f"Total Scans: {stats.get('total_scans', 0)}")
-        print_info(f"Total Subdomains: {stats.get('total_subdomains', 0)}")
-        print_info(f"Total Ports: {stats.get('total_ports', 0)}")
-        print_info(f"Total Vulnerabilities: {stats.get('total_vulnerabilities', 0)}")
-        print_info(f"Cracked Hashes: {stats.get('cracked_hashes', 0)}")
-        print_info(f"Total Credentials: {stats.get('total_credentials', 0)}")
+        print(f"  {Icons.DATABASE} {Colors.BCYAN}Total Scans:{Colors.BWHITE}         {stats.get('total_scans', 0)}")
+        print(f"  {Icons.GLOBE} {Colors.BCYAN}Total Subdomains:{Colors.BWHITE}    {stats.get('total_subdomains', 0)}")
+        print(f"  {Icons.NETWORK} {Colors.BCYAN}Total Ports:{Colors.BWHITE}         {stats.get('total_ports', 0)}")
+        print(f"  {Icons.WARNING} {Colors.BCYAN}Total Vulnerabilities:{Colors.BWHITE} {stats.get('total_vulnerabilities', 0)}")
+        print(f"  {Icons.KEY} {Colors.BCYAN}Cracked Hashes:{Colors.BWHITE}     {stats.get('cracked_hashes', 0)}")
+        print(f"  {Icons.LOCK} {Colors.BCYAN}Total Credentials:{Colors.BWHITE}  {stats.get('total_credentials', 0)}")
         
         if stats.get('vulns_by_severity'):
-            print_section("Vulnerabilities by Severity")
+            print_subsection("Vulnerabilities by Severity")
             for row in stats['vulns_by_severity']:
                 severity = row['severity'] or 'Unknown'
                 count = row['count']
-                cprint(f"    {severity}: {count}", Colors.BYELLOW)
+                print(f"    {Colors.BYELLOW}{Icons.BULLET} {severity}: {Colors.BWHITE}{count}")
     
     def _show_history(self):
         """Show scan history"""
-        print_section("Scan History")
+        print_header("Scan History")
         
         scans = self.db.get_scans(limit=20)
         
@@ -619,11 +622,15 @@ Examples:
     
     def _show_version(self):
         """Show version info"""
-        print_section("Version Information")
-        print_info(f"Tool: {TOOL_NAME}")
-        print_info(f"Version: {TOOL_VERSION}")
-        print_info(f"Author: {TOOL_AUTHOR}")
-        print_info(f"Description: {TOOL_DESCRIPTION}")
+        print_header("Version Information")
+        print()
+        print(f"  {Icons.COMPUTER} {Colors.BCYAN}Tool:{Colors.BWHITE}        {TOOL_NAME}")
+        print(f"  {Icons.INFO} {Colors.BCYAN}Version:{Colors.BWHITE}     {TOOL_VERSION}")
+        print(f"  {Icons.INFO} {Colors.BCYAN}Author:{Colors.BWHITE}      {TOOL_AUTHOR}")
+        print(f"  {Icons.INFO} {Colors.BCYAN}Description:{Colors.BWHITE} {TOOL_DESCRIPTION}")
+        print()
+        print_separator()
+        print()
     
     def _update_tools(self):
         """Update BYMA TOOLS"""

@@ -1,6 +1,6 @@
 """
 BYMA TOOLS - Logger System
-Sistem logging untuk pencatatan semua aktivitas
+Sistem logging untuk pencatatan semua aktivitas dengan tema cyber
 """
 import logging
 import os
@@ -10,10 +10,19 @@ from datetime import datetime
 
 
 class BYMALogger:
-    """Custom logger untuk BYMA TOOLS"""
+    """Custom logger untuk BYMA TOOLS dengan tema"""
     
     _instance = None
     _logger = None
+    
+    # Icons untuk log level (ASCII safe)
+    ICONS = {
+        'DEBUG': '[D]',
+        'INFO': '[i]',
+        'WARNING': '[!]',
+        'ERROR': '[-]',
+        'CRITICAL': '[!!]'
+    }
     
     def __new__(cls):
         if cls._instance is None:
@@ -64,25 +73,30 @@ class BYMALogger:
         self._logger.addHandler(file_handler)
         self._logger.addHandler(console_handler)
     
+    def _format_message(self, level, module, message):
+        """Format message dengan icon"""
+        icon = self.ICONS.get(level, '●')
+        return f"{icon} [{module}] {message}"
+    
     def debug(self, message, module="CORE"):
         """Log debug message"""
-        self._logger.debug(f"[{module}] {message}")
+        self._logger.debug(self._format_message('DEBUG', module, message))
     
     def info(self, message, module="CORE"):
         """Log info message"""
-        self._logger.info(f"[{module}] {message}")
+        self._logger.info(self._format_message('INFO', module, message))
     
     def warning(self, message, module="CORE"):
         """Log warning message"""
-        self._logger.warning(f"[{module}] {message}")
+        self._logger.warning(self._format_message('WARNING', module, message))
     
     def error(self, message, module="CORE"):
         """Log error message"""
-        self._logger.error(f"[{module}] {message}")
+        self._logger.error(self._format_message('ERROR', module, message))
     
     def critical(self, message, module="CORE"):
         """Log critical message"""
-        self._logger.critical(f"[{module}] {message}")
+        self._logger.critical(self._format_message('CRITICAL', module, message))
     
     def scan_start(self, tool_name, target):
         """Log scan start"""
