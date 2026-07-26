@@ -47,17 +47,16 @@ class BYMATools:
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
 Examples:
-  byma auto http://target.com          # Intelligent auto-scan
-  byma recon subdomain example.com
-  byma scan vuln http://target.com
-  byma stats
+  python main.py                        # Start interactive mode (with login)
+  python main.py auto http://target.com # Direct command execution
+  python main.py recon subdomain example.com
+  python main.py scan vuln http://target.com
+  python main.py stats
 """
         )
         
-        parser.add_argument('--no-login', action='store_true', 
-                           help='Skip login (for direct command execution)')
-        parser.add_argument('--interactive', '-i', action='store_true',
-                           help='Start interactive mode')
+        parser.add_argument('--interactive', action='store_true',
+                           help='Start interactive mode with login')
         
         subparsers = parser.add_subparsers(dest='command', help='Command to execute')
         
@@ -181,13 +180,13 @@ Examples:
         """Main run method"""
         args = self.parser.parse_args()
         
-        # Direct command execution (no login required)
-        if args.command and not args.interactive:
-            self._execute_command(args)
+        # No command = interactive mode
+        if not args.command:
+            self._run_interactive()
             return
         
-        # Interactive mode with login
-        self._run_interactive()
+        # Direct command execution (skip login)
+        self._execute_command(args)
     
     def _run_interactive(self):
         """Run interactive mode with login"""
