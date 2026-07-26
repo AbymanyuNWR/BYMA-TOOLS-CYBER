@@ -1,0 +1,20 @@
+# Development Dependencies
+# For testing
+pytest>=7.0.0
+pytest-cov>=4.0.0
+pytest-html>=3.2.0
+
+# For code quality
+flake8>=6.0.0
+black>=23.0.0
+isort>=5.12.0
+
+# For type checking
+mypy>=1.0.0
+
+# For security scanning
+bandit>=1.7.0
+
+# For documentation
+sphinx>=6.0.0
+sphinx-rtd-theme>=1.2.0

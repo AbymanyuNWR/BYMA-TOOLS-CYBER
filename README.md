@@ -17,6 +17,10 @@
 ![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Mac%20%7C%20Termux-lightgrey?style=for-the-badge)
 ![Status](https://img.shields.io/badge/Status-Active-brightgreen?style=for-the-badge)
+![GitHub stars](https://img.shields.io/github/stars/AbymanyuNWR/BYMA-TOOLS-CYBER?style=social)
+![GitHub forks](https://img.shields.io/github/forks/AbymanyuNWR/BYMA-TOOLS-CYBER?style=social)
+![GitHub issues](https://img.shields.io/github/issues/AbymanyuNWR/BYMA-TOOLS-CYBER)
+![GitHub pull requests](https://img.shields.io/github/issues-pr/AbymanyuNWR/BYMA-TOOLS-CYBER)
 
 ---
 
