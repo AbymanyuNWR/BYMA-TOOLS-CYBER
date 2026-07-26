@@ -143,7 +143,15 @@
 </td>
 <td>
 
+### 🔐 Login System
+- User Registration & Login
+- Password Hashing (SHA256)
+- Session Management
+- User Profile
+- Login History
+
 ### 🚀 Advanced Features
+- Interactive Menu System
 - AI Auto Scan Engine
 - HTML Report Generator
 - Stealth Mode
@@ -266,10 +274,34 @@ Just double-click `setup.bat` to auto-install everything!
 
 ## 🚀 Usage
 
-### Basic Syntax
+### 🔐 Interactive Mode (Recommended for Beginners)
 
+```bash
+# Start interactive mode with login
+python main.py --interactive
+# or
+python main.py -i
 ```
-python main.py <module> <tool> [options]
+
+**Interactive Flow:**
+1. **Register** - Create your account (first time)
+2. **Login** - Enter your credentials
+3. **Main Menu** - Choose a tool category
+4. **Sub Menu** - Select specific tool
+5. **Input** - Enter target/parameters
+6. **Results** - View scan results
+7. **Continue** - Choose to continue, go back, or exit
+
+### 💻 Command Line Mode (Direct Execution)
+
+```bash
+# Basic syntax
+python main.py <command> [options]
+
+# Examples
+python main.py recon subdomain example.com
+python main.py scan vuln http://target.com
+python main.py stats
 ```
 
 ### Show Help
