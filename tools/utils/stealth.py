@@ -1,229 +1,171 @@
 """
-BYMA TOOLS - Stealth Mode
-Tools untuk scan dan attack dengan mode stealth/anti-detection
+BYMA TOOLS - Advanced Stealth Module
+Professional anti-detection and stealth techniques
 """
 import random
 import time
-import socket
 import json
+import hashlib
 from pathlib import Path
+from datetime import datetime
 from core.colors import (
     print_success, print_error, print_warning, print_info,
-    print_section, cprint, Colors
+    print_result, print_section, print_subsection, print_table,
+    cprint, Colors, print_separator, Icons
 )
-from core.logger import get_logger
+from core.logger import get_database, get_logger
 
 
-class StealthMode:
-    """Stealth scanning and attack mode"""
+class StealthModule:
+    """Professional stealth module for anti-detection"""
     
     def __init__(self):
         self.logger = get_logger()
-        self.user_agents = self._load_user_agents()
+        self.db = get_database()
     
-    def _load_user_agents(self):
-        """Load random user agents"""
-        return [
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15',
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/120.0.0.0 Safari/537.36'
-        ]
+    # User agents for rotation
+    USER_AGENTS = [
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:121.0) Gecko/20100101 Firefox/121.0',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1',
+        'Mozilla/5.0 (iPad; CPU OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1',
+    ]
     
-    def get_random_headers(self):
-        """Get random HTTP headers"""
-        headers = {
-            'User-Agent': random.choice(self.user_agents),
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-            'Cache-Control': 'max-age=0'
+    # Common headers
+    COMMON_HEADERS = {
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Cache-Control': 'max-age=0',
+    }
+    
+    # Delay ranges (seconds)
+    DELAY_RANGES = {
+        'aggressive': (0.1, 0.5),
+        'normal': (0.5, 2.0),
+        'stealthy': (1.0, 5.0),
+        'paranoid': (2.0, 10.0),
+    }
+    
+    def configure(self, mode='normal', output=None):
+        """Main configure function"""
+        print_section("STEALTH CONFIGURATION")
+        print()
+        
+        try:
+            print(f"  {Icons.INFO} {Colors.BCYAN}Mode:{Colors.BWHITE}        {mode.upper()}")
+            print_separator("-", 50)
+            print()
+            
+            # Generate stealth config
+            print_subsection("Generating Stealth Configuration")
+            config = self._generate_config(mode)
+            self._display_config(config)
+            
+            # Test configuration
+            print_subsection("Testing Configuration")
+            self._test_config(config)
+            
+            # Save to file
+            if output:
+                self._save_config(config, output)
+            
+            return config
+        
+        except Exception as e:
+            print_error(f"Configuration failed: {e}")
+            return None
+    
+    def _generate_config(self, mode):
+        """Generate stealth configuration"""
+        delay_range = self.DELAY_RANGES.get(mode, self.DELAY_RANGES['normal'])
+        
+        config = {
+            'mode': mode,
+            'user_agent': random.choice(self.USER_AGENTS),
+            'headers': self.COMMON_HEADERS.copy(),
+            'delay': {
+                'min': delay_range[0],
+                'max': delay_range[1],
+            },
+            'rotation': {
+                'user_agent': True,
+                'headers': True,
+            },
+            'evasion': {
+                'randomize_headers': True,
+                'add_referrer': True,
+                'use_proxy': False,
+                'proxy_list': [],
+            },
         }
         
-        # Randomly add some headers
-        if random.random() > 0.5:
-            headers['Referer'] = f"https://www.google.com/search?q={random.randint(1, 1000)}"
+        # Add random referrer
+        referrers = [
+            'https://www.google.com/',
+            'https://www.bing.com/',
+            'https://www.yahoo.com/',
+            'https://duckduckgo.com/',
+            'https://www.facebook.com/',
+            'https://twitter.com/',
+        ]
+        config['headers']['Referer'] = random.choice(referrers)
         
-        if random.random() > 0.7:
-            headers['X-Forwarded-For'] = f"{random.randint(1, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(1, 254)}"
-        
-        return headers
+        return config
     
-    def stealth_scan(self, target, ports='1-1024', delay=1, jitter=0.5):
-        """Perform stealth port scan"""
-        print_section(f"Stealth Port Scan: {target}")
+    def _test_config(self, config):
+        """Test stealth configuration"""
+        import requests
         
-        print_info(f"Target: {target}")
-        print_info(f"Ports: {ports}")
-        print_info(f"Delay: {delay}s +/- {jitter}s jitter")
-        print()
+        print_info("Testing User-Agent rotation...")
         
-        open_ports = []
-        port_list = self._parse_ports(ports)
-        
-        print_info("Starting stealth scan...")
-        
-        for port in port_list:
-            try:
-                # Add random delay with jitter
-                actual_delay = delay + random.uniform(-jitter, jitter)
-                time.sleep(max(0.1, actual_delay))
-                
-                # Random SYN scan
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.settimeout(2)
-                
-                # Random MSS value
-                mss = random.choice([1460, 1360, 1260])
-                
-                result = sock.connect_ex((target, port))
-                
-                if result == 0:
-                    open_ports.append(port)
-                    print_success(f"  Port {port}/tcp - OPEN")
-                
-                sock.close()
-            
-            except:
-                pass
+        for i in range(3):
+            ua = random.choice(self.USER_AGENTS)
+            print(f"  UA {i+1}: {ua[:60]}...")
         
         print()
-        print_success(f"Stealth scan completed. Found {len(open_ports)} open ports")
+        print_info("Testing header randomization...")
         
-        return open_ports
-    
-    def _parse_ports(self, ports_str):
-        """Parse port string"""
-        port_list = []
+        for i in range(3):
+            headers = self.COMMON_HEADERS.copy()
+            headers['User-Agent'] = random.choice(self.USER_AGENTS)
+            print(f"  Headers {i+1}: {len(headers)} headers")
         
-        for part in ports_str.split(','):
-            part = part.strip()
-            if '-' in part:
-                start, end = part.split('-')
-                port_list.extend(range(int(start), int(end) + 1))
-            elif part.isdigit():
-                port_list.append(int(part))
-        
-        # Shuffle ports for stealth
-        random.shuffle(port_list)
-        
-        return port_list
-    
-    def decoy_scan(self, target, decoys=None, ports='80,443,22'):
-        """Perform scan with decoy IPs"""
-        print_section(f"Decoy Scan: {target}")
-        
-        if not decoys:
-            decoys = self._generate_decoys(5)
-        
-        print_info(f"Target: {target}")
-        print_info(f"Decoys: {', '.join(decoys)}")
         print()
+        print_info("Testing delay timing...")
         
+        for i in range(3):
+            delay = random.uniform(config['delay']['min'], config['delay']['max'])
+            print(f"  Delay {i+1}: {delay:.2f}s")
+        
+        print()
+        print_success("Configuration test passed")
+    
+    def _display_config(self, config):
+        """Display configuration"""
+        print(f"  {Colors.BCYAN}Mode:{Colors.BWHITE}           {config['mode']}")
+        print(f"  {Colors.BCYAN}User-Agent:{Colors.BWHITE}     {config['user_agent'][:50]}...")
+        print(f"  {Colors.BCYAN}Headers:{Colors.BWHITE}        {len(config['headers'])}")
+        print(f"  {Colors.BCYAN}Delay Range:{Colors.BWHITE}    {config['delay']['min']:.1f}s - {config['delay']['max']:.1f}s")
+        print(f"  {Colors.BCYAN}UA Rotation:{Colors.BWHITE}    {'Enabled' if config['rotation']['user_agent'] else 'Disabled'}")
+        print(f"  {Colors.BCYAN}Header Random:{Colors.BWHITE}  {'Enabled' if config['evasion']['randomize_headers'] else 'Disabled'}")
+        print()
+    
+    def _save_config(self, config, output_file):
+        """Save configuration to file"""
         try:
-            from scapy.all import IP, TCP, send
+            output_path = Path(output_file)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
             
-            port_list = self._parse_ports(ports)
+            with open(output_path, 'w') as f:
+                json.dump(config, f, indent=2)
             
-            for port in port_list:
-                # Create decoy packets
-                for decoy in decoys:
-                    packet = IP(src=decoy, dst=target) / TCP(dport=port, flags='S')
-                    send(packet, verbose=False)
-                
-                # Send real packet
-                packet = IP(dst=target) / TCP(dport=port, flags='S')
-                send(packet, verbose=False)
-                
-                print_info(f"  Sent packets to port {port} with {len(decoys)} decoys")
-        
-        except ImportError:
-            print_error("Scapy is required for decoy scanning")
+            print_success(f"Configuration saved to {output_file}")
         except Exception as e:
-            print_error(f"Decoy scan failed: {e}")
-    
-    def _generate_decoys(self, count):
-        """Generate random decoy IPs"""
-        decoys = []
-        for _ in range(count):
-            decoy = f"{random.randint(1, 254)}.{random.randint(0, 254)}.{random.randint(0, 254)}.{random.randint(1, 254)}"
-            decoys.append(decoy)
-        return decoys
-    
-    def slow_scan(self, target, ports='1-100', min_delay=5, max_delay=30):
-        """Perform very slow scan to avoid detection"""
-        print_section(f"Slow Scan: {target}")
-        
-        print_info(f"Target: {target}")
-        print_info(f"Ports: {ports}")
-        print_info(f"Delay: {min_delay}-{max_delay}s between requests")
-        print_warning("This scan will take a long time!")
-        print()
-        
-        open_ports = []
-        port_list = self._parse_ports(ports)
-        
-        for port in port_list:
-            try:
-                # Random delay
-                delay = random.uniform(min_delay, max_delay)
-                print_info(f"  Waiting {delay:.1f}s before testing port {port}...")
-                time.sleep(delay)
-                
-                # Test port
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.settimeout(5)
-                result = sock.connect_ex((target, port))
-                
-                if result == 0:
-                    open_ports.append(port)
-                    print_success(f"  Port {port}/tcp - OPEN")
-                
-                sock.close()
-            
-            except:
-                pass
-        
-        return open_ports
-    
-    def fragment_packets(self, target, port):
-        """Send fragmented packets"""
-        print_section(f"Fragmented Packet Scan: {target}:{port}")
-        
-        try:
-            from scapy.all import IP, TCP, send
-            
-            # Create fragmented packet
-            packet = IP(dst=target, flags='MF') / TCP(dport=port, flags='S')
-            send(packet, verbose=False)
-            
-            print_success("Fragmented packet sent")
-        
-        except ImportError:
-            print_error("Scapy is required for packet fragmentation")
-        except Exception as e:
-            print_error(f"Failed to send fragmented packet: {e}")
-    
-    def randomize_source_port(self, target, port):
-        """Randomize source port"""
-        print_section(f"Random Source Port Scan: {target}:{port}")
-        
-        try:
-            from scapy.all import IP, TCP, send
-            
-            # Random source port
-            src_port = random.randint(1024, 65535)
-            
-            packet = IP(dst=target) / TCP(sport=src_port, dport=port, flags='S')
-            send(packet, verbose=False)
-            
-            print_success(f"Packet sent from source port {src_port}")
-        
-        except ImportError:
-            print_error("Scapy is required for random source port scanning")
-        except Exception as e:
-            print_error(f"Failed: {e}")
+            print_error(f"Failed to save configuration: {e}")

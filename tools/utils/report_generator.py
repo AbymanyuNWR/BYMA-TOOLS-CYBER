@@ -1,60 +1,75 @@
 """
 BYMA TOOLS - Advanced Report Generator
-Tools untuk generate laporan scan dalam format HTML
+Professional security report generation
 """
 import json
-from datetime import datetime
+import os
 from pathlib import Path
+from datetime import datetime
 from core.colors import (
     print_success, print_error, print_warning, print_info,
-    print_section, cprint, Colors
+    print_result, print_section, print_subsection, print_table,
+    cprint, Colors, print_separator, Icons
 )
-from core.logger import get_logger
-from core.database import get_database
+from core.logger import get_database, get_logger
 
 
 class ReportGenerator:
-    """Advanced report generator"""
+    """Professional security report generator"""
     
     def __init__(self):
         self.logger = get_logger()
         self.db = get_database()
     
-    def generate(self, scan_id=None, output_dir=None):
-        """Generate HTML report"""
-        print_section("Report Generator")
+    def generate(self, scan_id=None, format_type='json', output=None, 
+                 include_raw=False, template='standard'):
+        """Main generate function"""
+        print_section("REPORT GENERATOR")
+        print()
         
         try:
+            print(f"  {Icons.INFO} {Colors.BCYAN}Scan ID:{Colors.BWHITE}     {scan_id or 'All scans'}")
+            print(f"  {Icons.INFO} {Colors.BCYAN}Format:{Colors.BWHITE}      {format_type.upper()}")
+            print(f"  {Icons.INFO} {Colors.BCYAN}Template:{Colors.BWHITE}    {template}")
+            print_separator("-", 50)
+            print()
+            
             # Get scan data
             if scan_id:
                 scan_data = self._get_scan_data(scan_id)
             else:
-                scan_data = self._get_latest_scan_data()
+                scan_data = self._get_all_scans()
             
             if not scan_data:
-                print_warning("No scan data found")
+                print_error("No scan data found")
                 return None
             
-            # Generate HTML report
-            print_info("Generating HTML report...")
-            html = self._generate_html(scan_data)
+            # Generate report
+            print_subsection("Generating Report")
+            
+            if format_type == 'json':
+                report = self._generate_json(scan_data, include_raw)
+            elif format_type == 'html':
+                report = self._generate_html(scan_data, template)
+            elif format_type == 'text':
+                report = self._generate_text(scan_data)
+            elif format_type == 'csv':
+                report = self._generate_csv(scan_data)
+            else:
+                report = self._generate_json(scan_data, include_raw)
             
             # Save report
-            if output_dir:
-                output_path = Path(output_dir)
+            if output:
+                self._save_report(report, output, format_type)
             else:
-                output_path = Path("output/reports")
+                # Default output
+                output = f"report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.{format_type}"
+                self._save_report(report, output, format_type)
             
-            output_path.mkdir(parents=True, exist_ok=True)
+            # Display summary
+            self._display_summary(scan_data)
             
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            report_file = output_path / f"byma_report_{timestamp}.html"
-            
-            with open(report_file, 'w', encoding='utf-8') as f:
-                f.write(html)
-            
-            print_success(f"Report generated: {report_file}")
-            return report_file
+            return report
         
         except Exception as e:
             print_error(f"Report generation failed: {e}")
@@ -62,316 +77,232 @@ class ReportGenerator:
     
     def _get_scan_data(self, scan_id):
         """Get scan data from database"""
-        scan = self.db.get_scan(scan_id)
-        if not scan:
+        try:
+            db = get_database()
+            with db._cursor() as cursor:
+                cursor.execute("""
+                    SELECT * FROM scans WHERE id = ?
+                """, (scan_id,))
+                scan = cursor.fetchone()
+                
+                if not scan:
+                    return None
+                
+                cursor.execute("""
+                    SELECT * FROM vulnerabilities WHERE scan_id = ?
+                """, (scan_id,))
+                vulns = cursor.fetchall()
+                
+                cursor.execute("""
+                    SELECT * FROM scan_results WHERE scan_id = ?
+                """, (scan_id,))
+                results = cursor.fetchall()
+                
+                return {
+                    'scan': dict(scan) if scan else None,
+                    'vulnerabilities': [dict(v) for v in vulns],
+                    'results': [dict(r) for r in results],
+                }
+        except Exception as e:
+            print_warning(f"Could not fetch scan data: {e}")
             return None
-        
-        return {
-            'scan': dict(scan),
-            'vulnerabilities': [dict(v) for v in self.db.get_vulnerabilities(scan_id=scan_id)],
-            'ports': [dict(p) for p in self.db.get_ports(scan_id)],
-            'subdomains': [dict(s) for s in self.db.get_subdomains(scan_id)]
+    
+    def _get_all_scans(self):
+        """Get all scan data"""
+        try:
+            db = get_database()
+            with db._cursor() as cursor:
+                cursor.execute("""
+                    SELECT * FROM scans ORDER BY start_time DESC LIMIT 100
+                """)
+                scans = cursor.fetchall()
+                
+                all_data = []
+                for scan in scans:
+                    scan_id = scan['id']
+                    
+                    cursor.execute("""
+                        SELECT * FROM vulnerabilities WHERE scan_id = ?
+                    """, (scan_id,))
+                    vulns = cursor.fetchall()
+                    
+                    cursor.execute("""
+                        SELECT * FROM scan_results WHERE scan_id = ?
+                    """, (scan_id,))
+                    results = cursor.fetchall()
+                    
+                    all_data.append({
+                        'scan': dict(scan),
+                        'vulnerabilities': [dict(v) for v in vulns],
+                        'results': [dict(r) for r in results],
+                    })
+                
+                return all_data
+        except Exception as e:
+            print_warning(f"Could not fetch scan data: {e}")
+            return []
+    
+    def _generate_json(self, scan_data, include_raw=False):
+        """Generate JSON report"""
+        report = {
+            'report_info': {
+                'generated': datetime.now().isoformat(),
+                'tool': 'BYMA TOOLS',
+                'version': '1.0.0',
+            },
+            'scans': scan_data if isinstance(scan_data, list) else [scan_data],
         }
-    
-    def _get_latest_scan_data(self):
-        """Get latest scan data"""
-        scans = self.db.get_scans(limit=1)
-        if not scans:
-            return None
         
-        return self._get_scan_data(scans[0]['id'])
+        if not include_raw:
+            # Simplify results
+            for scan in report['scans']:
+                if 'results' in scan:
+                    scan['results_count'] = len(scan['results'])
+                    scan['results'] = 'See full report for details'
+        
+        return json.dumps(report, indent=2, default=str)
     
-    def _generate_html(self, scan_data):
+    def _generate_html(self, scan_data, template='standard'):
         """Generate HTML report"""
-        scan = scan_data['scan']
-        vulns = scan_data.get('vulnerabilities', [])
-        ports = scan_data.get('ports', [])
-        subdomains = scan_data.get('subdomains', [])
-        
-        # Calculate statistics
-        total_vulns = len(vulns)
-        critical = len([v for v in vulns if v.get('severity') == 'CRITICAL'])
-        high = len([v for v in vulns if v.get('severity') == 'HIGH'])
-        medium = len([v for v in vulns if v.get('severity') == 'MEDIUM'])
-        low = len([v for v in vulns if v.get('severity') == 'LOW'])
+        scans = scan_data if isinstance(scan_data, list) else [scan_data]
         
         html = f"""<!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BYMA TOOLS - Security Report</title>
+    <title>BYMA TOOLS Security Report</title>
     <style>
-        * {{
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }}
-        body {{
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #1a1a2e;
-            color: #eaeaea;
-            line-height: 1.6;
-        }}
-        .container {{
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }}
-        .header {{
-            background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
-            padding: 40px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-            text-align: center;
-        }}
-        .header h1 {{
-            font-size: 2.5em;
-            color: #00d4ff;
-            margin-bottom: 10px;
-        }}
-        .header p {{
-            color: #a0a0a0;
-            font-size: 1.1em;
-        }}
-        .stats {{
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }}
-        .stat-card {{
-            background: #16213e;
-            padding: 25px;
-            border-radius: 10px;
-            text-align: center;
-            border-left: 4px solid #00d4ff;
-        }}
-        .stat-card.critical {{ border-left-color: #ff4757; }}
-        .stat-card.high {{ border-left-color: #ff6b6b; }}
-        .stat-card.medium {{ border-left-color: #ffa502; }}
-        .stat-card.low {{ border-left-color: #2ed573; }}
-        .stat-card h3 {{
-            font-size: 2em;
-            color: #00d4ff;
-            margin-bottom: 10px;
-        }}
-        .stat-card.critical h3 {{ color: #ff4757; }}
-        .stat-card.high h3 {{ color: #ff6b6b; }}
-        .stat-card.medium h3 {{ color: #ffa502; }}
-        .stat-card.low h3 {{ color: #2ed573; }}
-        .section {{
-            background: #16213e;
-            padding: 30px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-        }}
-        .section h2 {{
-            color: #00d4ff;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #0f3460;
-        }}
-        table {{
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }}
-        th, td {{
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #0f3460;
-        }}
-        th {{
-            background: #0f3460;
-            color: #00d4ff;
-            font-weight: 600;
-        }}
-        tr:hover {{
-            background: #1a1a4e;
-        }}
-        .severity {{
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-weight: 600;
-            font-size: 0.85em;
-        }}
-        .severity.critical {{ background: #ff4757; color: white; }}
-        .severity.high {{ background: #ff6b6b; color: white; }}
-        .severity.medium {{ background: #ffa502; color: white; }}
-        .severity.low {{ background: #2ed573; color: white; }}
-        .severity.info {{ background: #3498db; color: white; }}
-        .footer {{
-            text-align: center;
-            padding: 20px;
-            color: #a0a0a0;
-            font-size: 0.9em;
-        }}
-        .info-grid {{
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-        }}
-        .info-item {{
-            padding: 10px;
-            background: #1a1a2e;
-            border-radius: 5px;
-        }}
-        .info-item label {{
-            color: #00d4ff;
-            display: block;
-            margin-bottom: 5px;
-            font-size: 0.9em;
-        }}
+        body {{ font-family: Arial, sans-serif; margin: 20px; }}
+        .header {{ background: #2c3e50; color: white; padding: 20px; }}
+        .section {{ margin: 20px 0; padding: 15px; border: 1px solid #ddd; }}
+        .vuln {{ background: #fee; border-left: 4px solid red; padding: 10px; margin: 5px 0; }}
+        .info {{ background: #efe; border-left: 4px solid green; padding: 10px; margin: 5px 0; }}
+        .warning {{ background: #ffa; border-left: 4px solid orange; padding: 10px; margin: 5px 0; }}
+        table {{ border-collapse: collapse; width: 100%; }}
+        th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+        th {{ background: #f5f5f5; }}
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>BYMA TOOLS</h1>
-            <p>Security Assessment Report</p>
-        </div>
-        
-        <div class="section">
-            <h2>Scan Information</h2>
-            <div class="info-grid">
-                <div class="info-item">
-                    <label>Target</label>
-                    <span>{scan.get('target', 'N/A')}</span>
-                </div>
-                <div class="info-item">
-                    <label>Scan Type</label>
-                    <span>{scan.get('scan_type', 'N/A')}</span>
-                </div>
-                <div class="info-item">
-                    <label>Tool Used</label>
-                    <span>{scan.get('tool_name', 'N/A')}</span>
-                </div>
-                <div class="info-item">
-                    <label>Status</label>
-                    <span>{scan.get('status', 'N/A')}</span>
-                </div>
-                <div class="info-item">
-                    <label>Start Time</label>
-                    <span>{scan.get('start_time', 'N/A')}</span>
-                </div>
-                <div class="info-item">
-                    <label>End Time</label>
-                    <span>{scan.get('end_time', 'N/A')}</span>
-                </div>
-            </div>
-        </div>
-        
-        <div class="stats">
-            <div class="stat-card">
-                <h3>{total_vulns}</h3>
-                <p>Total Findings</p>
-            </div>
-            <div class="stat-card critical">
-                <h3>{critical}</h3>
-                <p>Critical</p>
-            </div>
-            <div class="stat-card high">
-                <h3>{high}</h3>
-                <p>High</p>
-            </div>
-            <div class="stat-card medium">
-                <h3>{medium}</h3>
-                <p>Medium</p>
-            </div>
-            <div class="stat-card low">
-                <h3>{low}</h3>
-                <p>Low</p>
-            </div>
-        </div>
-        
-        <div class="section">
-            <h2>Vulnerabilities</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Severity</th>
-                        <th>Type</th>
-                        <th>Title</th>
-                        <th>Description</th>
-                    </tr>
-                </thead>
-                <tbody>
-"""
-        
-        for vuln in vulns:
-            severity_class = (vuln.get('severity', 'info')).lower()
-            html += f"""                    <tr>
-                        <td><span class="severity {severity_class}">{vuln.get('severity', 'N/A')}</span></td>
-                        <td>{vuln.get('vuln_type', 'N/A')}</td>
-                        <td>{vuln.get('title', 'N/A')}</td>
-                        <td>{vuln.get('description', 'N/A')}</td>
-                    </tr>
-"""
-        
-        html += """                </tbody>
-            </table>
-        </div>
-        
-        <div class="section">
-            <h2>Open Ports</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Port</th>
-                        <th>State</th>
-                        <th>Service</th>
-                        <th>Version</th>
-                    </tr>
-                </thead>
-                <tbody>
-"""
-        
-        for port in ports:
-            html += f"""                    <tr>
-                        <td>{port.get('port', 'N/A')}/tcp</td>
-                        <td>{port.get('state', 'N/A')}</td>
-                        <td>{port.get('service', 'N/A')}</td>
-                        <td>{port.get('version', 'N/A')}</td>
-                    </tr>
-"""
-        
-        html += """                </tbody>
-            </table>
-        </div>
-        
-        <div class="section">
-            <h2>Subdomains</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Subdomain</th>
-                        <th>IP Address</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-"""
-        
-        for sub in subdomains:
-            html += f"""                    <tr>
-                        <td>{sub.get('subdomain', 'N/A')}</td>
-                        <td>{sub.get('ip_address', 'N/A')}</td>
-                        <td>{sub.get('status', 'N/A')}</td>
-                    </tr>
-"""
-        
-        html += f"""                </tbody>
-            </table>
-        </div>
-        
-        <div class="footer">
-            <p>Generated by BYMA TOOLS | {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</p>
-            <p>Multi-Purpose Cybersecurity Toolkit</p>
-        </div>
+    <div class="header">
+        <h1>BYMA TOOLS Security Report</h1>
+        <p>Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
     </div>
+"""
+        
+        for scan in scans:
+            scan_info = scan.get('scan', {})
+            vulns = scan.get('vulnerabilities', [])
+            
+            html += f"""
+    <div class="section">
+        <h2>Scan: {scan_info.get('scan_type', 'Unknown')}</h2>
+        <p><strong>Target:</strong> {scan_info.get('target', 'N/A')}</p>
+        <p><strong>Status:</strong> {scan_info.get('status', 'N/A')}</p>
+        <p><strong>Start Time:</strong> {scan_info.get('start_time', 'N/A')}</p>
+        
+        <h3>Vulnerabilities ({len(vulns)})</h3>
+"""
+            
+            for vuln in vulns:
+                severity = vuln.get('severity', 'UNKNOWN').lower()
+                css_class = 'vuln' if severity in ['critical', 'high'] else 'warning' if severity == 'medium' else 'info'
+                
+                html += f"""
+        <div class="{css_class}">
+            <strong>{vuln.get('vuln_type', 'Unknown')}</strong> - {vuln.get('severity', 'Unknown')}<br>
+            Location: {vuln.get('location', 'N/A')}<br>
+            Evidence: {vuln.get('evidence', 'N/A')}
+        </div>
+"""
+            
+            html += "    </div>\n"
+        
+        html += """
 </body>
 </html>
 """
         
         return html
+    
+    def _generate_text(self, scan_data):
+        """Generate text report"""
+        scans = scan_data if isinstance(scan_data, list) else [scan_data]
+        
+        text = "=" * 60 + "\n"
+        text += "BYMA TOOLS SECURITY REPORT\n"
+        text += f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+        text += "=" * 60 + "\n\n"
+        
+        for scan in scans:
+            scan_info = scan.get('scan', {})
+            vulns = scan.get('vulnerabilities', [])
+            
+            text += f"Scan: {scan_info.get('scan_type', 'Unknown')}\n"
+            text += f"Target: {scan_info.get('target', 'N/A')}\n"
+            text += f"Status: {scan_info.get('status', 'N/A')}\n"
+            text += f"Start Time: {scan_info.get('start_time', 'N/A')}\n"
+            text += "-" * 40 + "\n"
+            text += f"Vulnerabilities: {len(vulns)}\n\n"
+            
+            for i, vuln in enumerate(vulns, 1):
+                text += f"  #{i} {vuln.get('vuln_type', 'Unknown')}\n"
+                text += f"     Severity: {vuln.get('severity', 'Unknown')}\n"
+                text += f"     Location: {vuln.get('location', 'N/A')}\n"
+                text += f"     Evidence: {vuln.get('evidence', 'N/A')}\n\n"
+        
+        return text
+    
+    def _generate_csv(self, scan_data):
+        """Generate CSV report"""
+        scans = scan_data if isinstance(scan_data, list) else [scan_data]
+        
+        csv = "Scan Type,Target,Status,Start Time,Vulnerability Type,Severity,Location,Evidence\n"
+        
+        for scan in scans:
+            scan_info = scan.get('scan', {})
+            vulns = scan.get('vulnerabilities', [])
+            
+            for vuln in vulns:
+                csv += f'"{scan_info.get("scan_type", "")}","{scan_info.get("target", "")}","{scan_info.get("status", "")}","{scan_info.get("start_time", "")}","{vuln.get("vuln_type", "")}","{vuln.get("severity", "")}","{vuln.get("location", "")}","{vuln.get("evidence", "")}"\n'
+        
+        return csv
+    
+    def _save_report(self, report, output_file, format_type):
+        """Save report to file"""
+        try:
+            output_path = Path(output_file)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(report)
+            
+            print_success(f"Report saved to {output_file}")
+        except Exception as e:
+            print_error(f"Failed to save report: {e}")
+    
+    def _display_summary(self, scan_data):
+        """Display report summary"""
+        scans = scan_data if isinstance(scan_data, list) else [scan_data]
+        
+        total_vulns = 0
+        severity_counts = {}
+        
+        for scan in scans:
+            vulns = scan.get('vulnerabilities', [])
+            total_vulns += len(vulns)
+            
+            for vuln in vulns:
+                severity = vuln.get('severity', 'UNKNOWN')
+                severity_counts[severity] = severity_counts.get(severity, 0) + 1
+        
+        print()
+        print_subsection("Report Summary")
+        print(f"  {Icons.INFO} {Colors.BCYAN}Total Scans:{Colors.BWHITE}      {len(scans)}")
+        print(f"  {Icons.INFO} {Colors.BCYAN}Total Vulnerabilities:{Colors.BWHITE} {total_vulns}")
+        
+        if severity_counts:
+            print(f"  {Icons.INFO} {Colors.BCYAN}By Severity:{Colors.BWHITE}")
+            for severity, count in sorted(severity_counts.items()):
+                print(f"       {severity}: {count}")
+        
+        print()

@@ -1,137 +1,235 @@
 """
-BYMA TOOLS - Plugin System
-System untuk menambahkan custom plugins/tools
+BYMA TOOLS - Advanced Plugin Manager
+Professional plugin management system
 """
-import importlib
 import json
+import os
+import importlib
 from pathlib import Path
+from datetime import datetime
 from core.colors import (
     print_success, print_error, print_warning, print_info,
-    print_section, cprint, Colors
+    print_result, print_section, print_subsection, print_table,
+    cprint, Colors, print_separator, Icons
 )
-from core.logger import get_logger
+from core.logger import get_database, get_logger
 
 
 class PluginManager:
-    """Plugin management system"""
+    """Professional plugin manager for BYMA TOOLS"""
     
     def __init__(self):
         self.logger = get_logger()
+        self.db = get_database()
         self.plugins = {}
-        self.plugin_dir = Path(__file__).resolve().parent.parent.parent / "plugins"
-        self.plugin_dir.mkdir(exist_ok=True)
+        self.plugin_dir = Path(__file__).parent.parent.parent / 'plugins'
     
-    def load_plugins(self):
-        """Load all plugins from plugins directory"""
-        print_info("Loading plugins...")
-        
-        plugin_files = list(self.plugin_dir.glob("*.py"))
-        
-        for plugin_file in plugin_files:
-            try:
-                plugin_name = plugin_file.stem
-                spec = importlib.util.spec_from_file_location(plugin_name, plugin_file)
-                module = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(module)
-                
-                if hasattr(module, 'Plugin'):
-                    plugin_class = module.Plugin
-                    plugin = plugin_class()
-                    
-                    if hasattr(plugin, 'name') and hasattr(plugin, 'description'):
-                        self.plugins[plugin.name] = plugin
-                        print_success(f"  Loaded plugin: {plugin.name}")
-            
-            except Exception as e:
-                print_error(f"  Failed to load plugin {plugin_file.name}: {e}")
-        
-        print_info(f"Loaded {len(self.plugins)} plugins")
+    # Built-in plugins
+    BUILTIN_PLUGINS = {
+        'nmap_scanner': {
+            'name': 'Nmap Scanner',
+            'description': 'Nmap integration for advanced port scanning',
+            'version': '1.0.0',
+            'author': 'BYMA TOOLS',
+            'category': 'recon',
+            'enabled': True,
+            'requires': ['nmap'],
+        },
+        'nikto_scanner': {
+            'name': 'Nikto Scanner',
+            'description': 'Nikto integration for web server scanning',
+            'version': '1.0.0',
+            'author': 'BYMA TOOLS',
+            'category': 'scanner',
+            'enabled': True,
+            'requires': ['nikto'],
+        },
+        'sqlmap_integration': {
+            'name': 'SQLMap Integration',
+            'description': 'SQLMap integration for SQL injection testing',
+            'version': '1.0.0',
+            'author': 'BYMA TOOLS',
+            'category': 'exploit',
+            'enabled': True,
+            'requires': ['sqlmap'],
+        },
+        'hydra_integration': {
+            'name': 'Hydra Integration',
+            'description': 'Hydra integration for brute force attacks',
+            'version': '1.0.0',
+            'author': 'BYMA TOOLS',
+            'category': 'password',
+            'enabled': True,
+            'requires': ['hydra'],
+        },
+        'metasploit_connector': {
+            'name': 'Metasploit Connector',
+            'description': 'Metasploit Framework integration',
+            'version': '1.0.0',
+            'author': 'BYMA TOOLS',
+            'category': 'exploit',
+            'enabled': False,
+            'requires': ['msfconsole'],
+        },
+    }
     
-    def list_plugins(self):
-        """List all available plugins"""
-        print_section("Available Plugins")
+    def list_plugins(self, output=None):
+        """List all plugins"""
+        print_section("PLUGIN MANAGER")
+        print()
         
-        if not self.plugins:
-            print_warning("No plugins loaded")
-            return
+        print_subsection("Available Plugins")
         
-        for name, plugin in self.plugins.items():
-            cprint(f"    {name}: {plugin.description}", Colors.BCYAN)
-            if hasattr(plugin, 'version'):
-                cprint(f"      Version: {plugin.version}", Colors.BWHITE)
+        # Combine built-in and custom plugins
+        all_plugins = self.BUILTIN_PLUGINS.copy()
+        
+        # Scan for custom plugins
+        self._scan_custom_plugins(all_plugins)
+        
+        # Display plugins
+        table_data = [["Plugin", "Version", "Category", "Status", "Description"]]
+        
+        for name, info in all_plugins.items():
+            status = "Enabled" if info.get('enabled', True) else "Disabled"
+            table_data.append([
+                name,
+                info.get('version', '1.0.0'),
+                info.get('category', 'Unknown'),
+                status,
+                info.get('description', '')[:40],
+            ])
+        
+        print_table(table_data)
+        print()
+        
+        # Summary
+        total = len(all_plugins)
+        enabled = sum(1 for p in all_plugins.values() if p.get('enabled', True))
+        
+        print(f"  {Icons.INFO} {Colors.BCYAN}Total Plugins:{Colors.BWHITE}    {total}")
+        print(f"  {Icons.INFO} {Colors.BCYAN}Enabled:{Colors.BWHITE}         {enabled}")
+        print(f"  {Icons.INFO} {Colors.BCYAN}Disabled:{Colors.BWHITE}        {total - enabled}")
+        print()
+        
+        return all_plugins
     
-    def run_plugin(self, plugin_name, **kwargs):
-        """Run a specific plugin"""
-        if plugin_name not in self.plugins:
-            print_error(f"Plugin not found: {plugin_name}")
-            return None
+    def enable(self, plugin_name, output=None):
+        """Enable a plugin"""
+        print_section("ENABLE PLUGIN")
+        print()
         
-        plugin = self.plugins[plugin_name]
+        if plugin_name in self.BUILTIN_PLUGINS:
+            self.BUILTIN_PLUGINS[plugin_name]['enabled'] = True
+            print_success(f"Plugin '{plugin_name}' enabled")
+        else:
+            print_error(f"Plugin '{plugin_name}' not found")
+    
+    def disable(self, plugin_name, output=None):
+        """Disable a plugin"""
+        print_section("DISABLE PLUGIN")
+        print()
+        
+        if plugin_name in self.BUILTIN_PLUGINS:
+            self.BUILTIN_PLUGINS[plugin_name]['enabled'] = False
+            print_success(f"Plugin '{plugin_name}' disabled")
+        else:
+            print_error(f"Plugin '{plugin_name}' not found")
+    
+    def install(self, plugin_path, output=None):
+        """Install a plugin"""
+        print_section("INSTALL PLUGIN")
+        print()
         
         try:
-            print_info(f"Running plugin: {plugin_name}")
-            result = plugin.run(**kwargs)
-            print_success(f"Plugin completed: {plugin_name}")
-            return result
+            plugin_path = Path(plugin_path)
+            
+            if not plugin_path.exists():
+                print_error(f"Plugin not found: {plugin_path}")
+                return False
+            
+            # Validate plugin
+            if not self._validate_plugin(plugin_path):
+                print_error("Invalid plugin format")
+                return False
+            
+            # Copy plugin to plugins directory
+            self.plugin_dir.mkdir(parents=True, exist_ok=True)
+            
+            dest = self.plugin_dir / plugin_path.name
+            
+            import shutil
+            shutil.copy2(plugin_path, dest)
+            
+            print_success(f"Plugin installed to {dest}")
+            return True
+        
         except Exception as e:
-            print_error(f"Plugin failed: {e}")
-            return None
+            print_error(f"Installation failed: {e}")
+            return False
     
-    def create_plugin_template(self, name, description):
-        """Create a new plugin template"""
-        template = f'''"""
-{description}
-"""
-from core.colors import print_info, print_success, print_error
-
-
-class Plugin:
-    """Plugin: {name}"""
-    
-    def __init__(self):
-        self.name = "{name}"
-        self.description = "{description}"
-        self.version = "1.0.0"
-    
-    def run(self, **kwargs):
-        """Main plugin function"""
-        print_info(f"Running {self.name} plugin...")
-        
-        # Your plugin code here
-        
-        print_success(f"{self.name} completed")
-        return {{"status": "success"}}
-'''
-        
-        plugin_file = self.plugin_dir / f"{name}.py"
-        plugin_file.write_text(template)
-        
-        print_success(f"Plugin template created: {plugin_file}")
-        return plugin_file
-    
-    def uninstall_plugin(self, plugin_name):
+    def uninstall(self, plugin_name, output=None):
         """Uninstall a plugin"""
+        print_section("UNINSTALL PLUGIN")
+        print()
+        
         plugin_file = self.plugin_dir / f"{plugin_name}.py"
         
         if plugin_file.exists():
             plugin_file.unlink()
-            if plugin_name in self.plugins:
-                del self.plugins[plugin_name]
-            print_success(f"Plugin uninstalled: {plugin_name}")
+            print_success(f"Plugin '{plugin_name}' uninstalled")
+            return True
         else:
-            print_error(f"Plugin not found: {plugin_name}")
-
-
-# Example plugin class
-class ExamplePlugin:
-    """Example plugin for reference"""
+            print_error(f"Plugin '{plugin_name}' not found")
+            return False
     
-    def __init__(self):
-        self.name = "example"
-        self.description = "Example plugin"
-        self.version = "1.0.0"
+    def _scan_custom_plugins(self, plugins):
+        """Scan for custom plugins"""
+        if not self.plugin_dir.exists():
+            return
+        
+        for plugin_file in self.plugin_dir.glob("*.py"):
+            if plugin_file.name.startswith('_'):
+                continue
+            
+            plugin_name = plugin_file.stem
+            
+            # Try to load plugin info
+            try:
+                spec = importlib.util.spec_from_file_location(plugin_name, plugin_file)
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+                
+                if hasattr(module, 'PLUGIN_INFO'):
+                    plugins[plugin_name] = module.PLUGIN_INFO
+                else:
+                    plugins[plugin_name] = {
+                        'name': plugin_name,
+                        'description': 'Custom plugin',
+                        'version': '1.0.0',
+                        'category': 'custom',
+                        'enabled': True,
+                    }
+            except:
+                plugins[plugin_name] = {
+                    'name': plugin_name,
+                    'description': 'Custom plugin (load error)',
+                    'version': '1.0.0',
+                    'category': 'custom',
+                    'enabled': False,
+                }
     
-    def run(self, **kwargs):
-        """Run plugin"""
-        print_info("Example plugin running...")
-        return {"status": "success"}
+    def _validate_plugin(self, plugin_path):
+        """Validate plugin format"""
+        try:
+            spec = importlib.util.spec_from_file_location("plugin", plugin_path)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            
+            # Check for required attributes
+            if not hasattr(module, 'PLUGIN_INFO'):
+                print_warning("Plugin missing PLUGIN_INFO")
+            
+            return True
+        except Exception as e:
+            print_error(f"Plugin validation failed: {e}")
+            return False
