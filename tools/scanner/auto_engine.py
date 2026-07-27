@@ -1,62 +1,113 @@
 """
-BYMA TOOLS - Auto Scan Engine
-Intelligent auto-scanning yang otomatis mendeteksi target dan menjalankan scan terbaik
+BYMA TOOLS - Advanced Auto Scan Engine
+Intelligent auto-scanning with AI-powered decision making
 """
 import re
 import json
 import time
+import socket
+import requests
 from pathlib import Path
+from datetime import datetime
 from urllib.parse import urlparse
 from core.colors import (
     print_success, print_error, print_warning, print_info,
-    print_result, print_section, cprint, Colors
+    print_result, print_section, print_subsection, print_table,
+    cprint, Colors, print_separator, Icons, print_scan_start, print_scan_complete
 )
 from core.logger import get_logger
 from core.database import get_database
 
 
 class AutoScanEngine:
-    """AI-powered auto scan engine"""
+    """AI-powered auto scan engine with intelligent decision making"""
     
     def __init__(self):
         self.logger = get_logger()
         self.db = get_database()
         self.scan_plan = []
         self.results = {}
+        self.start_time = None
+        self.target_info = {}
+    
+    # Scan profiles
+    SCAN_PROFILES = {
+        'passive': {
+            'name': 'Passive Reconnaissance',
+            'description': 'Non-intrusive information gathering',
+            'tools': ['whois', 'dns', 'headers', 'ssl'],
+            'risk': 'LOW',
+        },
+        'smart': {
+            'name': 'Smart Scan',
+            'description': 'Balanced scan with intelligent decisions',
+            'tools': ['whois', 'dns', 'headers', 'ssl', 'vuln', 'dir'],
+            'risk': 'MEDIUM',
+        },
+        'aggressive': {
+            'name': 'Aggressive Scan',
+            'description': 'Comprehensive deep scanning',
+            'tools': ['whois', 'dns', 'headers', 'ssl', 'vuln', 'dir', 'sqli', 'xss'],
+            'risk': 'HIGH',
+        },
+        'full': {
+            'name': 'Full Security Audit',
+            'description': 'Complete security assessment',
+            'tools': ['whois', 'dns', 'headers', 'ssl', 'vuln', 'dir', 'sqli', 'xss', 'tech'],
+            'risk': 'HIGH',
+        },
+    }
     
     def auto_scan(self, target, mode='smart', output=None):
         """Main auto scan function"""
-        print_section(f"Auto Scan Engine - Mode: {mode.upper()}")
+        self.start_time = datetime.now()
         
-        # Analyze target
-        print_info("Analyzing target...")
-        target_info = self._analyze_target(target)
+        print_section("AUTO SCAN ENGINE")
+        print()
         
-        # Create scan plan
-        print_info("Creating intelligent scan plan...")
-        self.scan_plan = self._create_scan_plan(target_info, mode)
+        # Create scan record
+        scan_id = self.db.create_scan("auto_scan", target, "auto")
+        self.logger.scan_start("auto_scan", target)
         
-        # Display plan
-        self._display_plan()
+        try:
+            # Analyze target
+            print_subsection("Target Analysis")
+            self.target_info = self._analyze_target(target)
+            self._display_target_info()
+            
+            # Create intelligent scan plan
+            print_subsection("Creating Scan Plan")
+            self.scan_plan = self._create_intelligent_plan(target, mode)
+            self._display_plan()
+            
+            # Execute scan plan
+            print_subsection("Executing Scan Plan")
+            self._execute_plan(target, scan_id)
+            
+            # Generate summary
+            self._generate_summary()
+            
+            # Update scan status
+            self.db.update_scan(scan_id, "completed", len(self.results))
+            self.logger.scan_complete("auto_scan", target, len(self.results))
+            
+            # Save results
+            if output:
+                self._save_results(target, output)
+            
+            return self.results
         
-        # Execute scan plan
-        print_info("Executing scan plan...")
-        self._execute_plan(target, target_info)
-        
-        # Generate summary
-        self._generate_summary()
-        
-        # Save results
-        if output:
-            self._save_results(target, output)
-        
-        return self.results
+        except Exception as e:
+            self.db.update_scan(scan_id, "failed")
+            self.logger.scan_error("auto_scan", target, str(e))
+            print_error(f"Auto scan failed: {e}")
+            return {}
     
     def _analyze_target(self, target):
         """Analyze target to determine best scanning approach"""
         info = {
             'original': target,
-            'type': None,
+            'type': 'unknown',
             'protocol': None,
             'hostname': None,
             'port': None,
@@ -67,7 +118,11 @@ class AutoScanEngine:
             'is_url': False,
             'open_ports': [],
             'services': [],
-            'technologies': []
+            'technologies': [],
+            'web_server': None,
+            'cms': None,
+            'os': None,
+            'response_time': 0,
         }
         
         # Detect target type
@@ -80,6 +135,7 @@ class AutoScanEngine:
             info['hostname'] = parsed.hostname
             info['port'] = parsed.port or (443 if info['protocol'] == 'https' else 80)
             info['path'] = parsed.path
+            info['type'] = 'url'
         
         elif re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', target):
             info['is_ip'] = True
@@ -91,325 +147,319 @@ class AutoScanEngine:
             info['is_ip'] = True
             info['hostname'] = target
         
-        else:
+        elif re.match(r'^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+$', target):
             info['is_domain'] = True
             info['type'] = 'domain'
             info['hostname'] = target
             info['is_web'] = True
         
+        else:
+            info['type'] = 'hostname'
+            info['hostname'] = target
+            info['is_web'] = True
+        
+        # Quick port check for web services
+        if info['is_web']:
+            self._quick_web_check(info)
+        
         return info
     
-    def _create_scan_plan(self, target_info, mode):
-        """Create intelligent scan plan based on target"""
+    def _quick_web_check(self, info):
+        """Quick check for web services"""
+        try:
+            start_time = time.time()
+            
+            # Try HTTPS first, then HTTP
+            for protocol in ['https', 'http']:
+                try:
+                    url = f"{protocol}://{info['hostname']}"
+                    response = requests.get(url, timeout=5, verify=False, allow_redirects=True)
+                    
+                    info['response_time'] = time.time() - start_time
+                    info['status_code'] = response.status_code
+                    info['web_server'] = response.headers.get('Server', 'Unknown')
+                    
+                    # Detect technologies
+                    headers_str = str(response.headers).lower()
+                    body_lower = response.text.lower()
+                    
+                    # CMS detection
+                    cms_indicators = {
+                        'WordPress': ['wp-content', 'wp-includes', 'wordpress'],
+                        'Joomla': ['joomla', '/components/'],
+                        'Drupal': ['drupal', 'sites/default'],
+                        'Laravel': ['laravel', 'csrf-token'],
+                        'Django': ['csrfmiddlewaretoken'],
+                        'ASP.NET': ['__viewstate', 'asp.net'],
+                    }
+                    
+                    for cms, indicators in cms_indicators.items():
+                        for indicator in indicators:
+                            if indicator.lower() in headers_str or indicator.lower() in body_lower:
+                                info['cms'] = cms
+                                info['technologies'].append(cms)
+                                break
+                    
+                    # Server detection
+                    server = response.headers.get('Server', '')
+                    if 'apache' in server.lower():
+                        info['web_server'] = 'Apache'
+                    elif 'nginx' in server.lower():
+                        info['web_server'] = 'Nginx'
+                    elif 'iis' in server.lower():
+                        info['web_server'] = 'IIS'
+                    
+                    break
+                
+                except:
+                    continue
+        
+        except:
+            pass
+    
+    def _create_intelligent_plan(self, target, mode):
+        """Create intelligent scan plan based on target analysis"""
+        profile = self.SCAN_PROFILES.get(mode, self.SCAN_PROFILES['smart'])
+        
         plan = []
         
-        # Phase 1: Reconnaissance
-        recon_steps = []
-        
-        if target_info['is_domain'] or target_info['is_url']:
-            recon_steps.append({
-                'tool': 'subdomain',
-                'name': 'Subdomain Enumeration',
-                'priority': 'high',
-                'description': 'Discover all subdomains'
-            })
-            recon_steps.append({
-                'tool': 'dns',
-                'name': 'DNS Enumeration',
-                'priority': 'high',
-                'description': 'Query all DNS records'
-            })
-            recon_steps.append({
-                'tool': 'whois',
-                'name': 'WHOIS Lookup',
-                'priority': 'medium',
-                'description': 'Get domain registration info'
-            })
-        
-        if target_info['is_ip'] or target_info['is_url']:
-            recon_steps.append({
-                'tool': 'port',
-                'name': 'Port Scanning',
-                'priority': 'high',
-                'description': 'Scan open ports and services'
-            })
-            recon_steps.append({
-                'tool': 'ip',
-                'name': 'IP Geolocation',
-                'priority': 'low',
-                'description': 'Get IP location info'
-            })
-        
-        if target_info['is_web']:
-            recon_steps.append({
-                'tool': 'tech',
-                'name': 'Technology Detection',
-                'priority': 'high',
-                'description': 'Identify web technologies'
-            })
-            recon_steps.append({
-                'tool': 'email',
-                'name': 'Email Harvesting',
-                'priority': 'medium',
-                'description': 'Find email addresses'
-            })
-        
+        # Always start with passive recon
         plan.append({
-            'phase': 'Reconnaissance',
-            'steps': recon_steps
+            'phase': 1,
+            'name': 'Passive Reconnaissance',
+            'tools': ['whois_lookup', 'dns_lookup'],
+            'description': 'Gathering publicly available information',
+            'estimated_time': '30s',
         })
         
-        # Phase 2: Vulnerability Scanning
-        vuln_steps = []
-        
-        if target_info['is_web']:
-            vuln_steps.append({
-                'tool': 'vuln',
-                'name': 'Vulnerability Scan',
-                'priority': 'high',
-                'description': 'Scan for common vulnerabilities'
+        # Add web-specific scans if target is web
+        if self.target_info.get('is_web'):
+            plan.append({
+                'phase': 2,
+                'name': 'Web Analysis',
+                'tools': ['header_analyzer', 'tech_fingerprint'],
+                'description': 'Analyzing web application security headers and technology',
+                'estimated_time': '20s',
             })
-            vuln_steps.append({
-                'tool': 'sqli',
-                'name': 'SQL Injection Test',
-                'priority': 'high',
-                'description': 'Test for SQL injection'
-            })
-            vuln_steps.append({
-                'tool': 'xss',
-                'name': 'XSS Test',
-                'priority': 'high',
-                'description': 'Test for Cross-Site Scripting'
-            })
-            vuln_steps.append({
-                'tool': 'headers',
-                'name': 'Security Headers Check',
-                'priority': 'medium',
-                'description': 'Analyze security headers'
-            })
-            vuln_steps.append({
-                'tool': 'ssl',
-                'name': 'SSL/TLS Check',
-                'priority': 'medium',
-                'description': 'Check SSL/TLS configuration'
-            })
-            vuln_steps.append({
-                'tool': 'dir',
-                'name': 'Directory Bruteforce',
-                'priority': 'medium',
-                'description': 'Find hidden directories'
-            })
-        
-        plan.append({
-            'phase': 'Vulnerability Scanning',
-            'steps': vuln_steps
-        })
-        
-        # Phase 3: Exploitation (only in aggressive mode)
-        if mode == 'aggressive':
-            exploit_steps = []
-            
-            if target_info['is_web']:
-                exploit_steps.append({
-                    'tool': 'waf',
-                    'name': 'WAF Detection',
-                    'priority': 'high',
-                    'description': 'Detect WAF and attempt bypass'
-                })
-                exploit_steps.append({
-                    'tool': 'credential',
-                    'name': 'Credential Harvesting',
-                    'priority': 'high',
-                    'description': 'Attempt to find credentials'
-                })
             
             plan.append({
-                'phase': 'Exploitation',
-                'steps': exploit_steps
+                'phase': 3,
+                'name': 'SSL/TLS Analysis',
+                'tools': ['ssl_checker'],
+                'description': 'Checking SSL/TLS configuration',
+                'estimated_time': '15s',
+            })
+            
+            plan.append({
+                'phase': 4,
+                'name': 'Vulnerability Scanning',
+                'tools': ['vuln_scanner'],
+                'description': 'Scanning for common vulnerabilities',
+                'estimated_time': '60s',
+            })
+            
+            # Add deeper scans based on mode
+            if mode in ['aggressive', 'full']:
+                plan.append({
+                    'phase': 5,
+                    'name': 'Directory Discovery',
+                    'tools': ['dir_bruteforce'],
+                    'description': 'Discovering hidden directories and files',
+                    'estimated_time': '120s',
+                })
+            
+            if mode == 'full':
+                plan.append({
+                    'phase': 6,
+                    'name': 'Injection Testing',
+                    'tools': ['sql_injection', 'xss_scanner'],
+                    'description': 'Testing for injection vulnerabilities',
+                    'estimated_time': '180s',
+                })
+        
+        else:
+            # Non-web target
+            plan.append({
+                'phase': 2,
+                'name': 'Port Scanning',
+                'tools': ['port_scanner'],
+                'description': 'Scanning for open ports and services',
+                'estimated_time': '60s',
             })
         
         return plan
     
+    def _display_target_info(self):
+        """Display target information"""
+        print(f"  {Colors.BCYAN}Target:{Colors.BWHITE}       {self.target_info['original']}")
+        print(f"  {Colors.BCYAN}Type:{Colors.BWHITE}         {self.target_info['type'].upper()}")
+        print(f"  {Colors.BCYAN}Hostname:{Colors.BWHITE}     {self.target_info.get('hostname', 'N/A')}")
+        
+        if self.target_info.get('web_server'):
+            print(f"  {Colors.BCYAN}Web Server:{Colors.BWHITE}   {self.target_info['web_server']}")
+        
+        if self.target_info.get('cms'):
+            print(f"  {Colors.BCYAN}CMS:{Colors.BWHITE}          {self.target_info['cms']}")
+        
+        if self.target_info.get('technologies'):
+            print(f"  {Colors.BCYAN}Technologies:{Colors.BWHITE} {', '.join(self.target_info['technologies'])}")
+        
+        if self.target_info.get('response_time'):
+            print(f"  {Colors.BCYAN}Response Time:{Colors.BWHITE} {self.target_info['response_time']:.2f}s")
+        
+        print()
+    
     def _display_plan(self):
         """Display scan plan"""
-        print_section("Scan Plan")
+        print(f"  {Colors.BCYAN}+{'=' * 50}+{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BGREEN}{Colors.BRIGHT}  SCAN PLAN {' ' * 39}  {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}+{'-' * 50}+{Colors.RESET}")
         
-        for i, phase in enumerate(self.scan_plan, 1):
-            cprint(f"    Phase {i}: {phase['phase']}", Colors.BCYAN)
-            for step in phase['steps']:
-                priority_color = {
-                    'high': Colors.BRED,
-                    'medium': Colors.BYELLOW,
-                    'low': Colors.BGREEN
-                }.get(step['priority'], Colors.BWHITE)
-                
-                cprint(f"      [{step['priority'].upper():<8}] {step['name']}", priority_color)
-                cprint(f"              {step['description']}", Colors.BBLACK)
-            print()
+        for phase in self.scan_plan:
+            print(f"  {Colors.BCYAN}|{Colors.BYELLOW}  Phase {phase['phase']}: {phase['name']:<34} {Colors.BCYAN}|{Colors.RESET}")
+            print(f"  {Colors.BCYAN}|{Colors.BWHITE}    Tools: {', '.join(phase['tools']):<37} {Colors.BCYAN}|{Colors.RESET}")
+            print(f"  {Colors.BCYAN}|{Colors.BBLACK}    ETA: {phase['estimated_time']:<40} {Colors.BCYAN}|{Colors.RESET}")
+            print(f"  {Colors.BCYAN}+{'-' * 50}+{Colors.RESET}")
+        
+        print()
     
-    def _execute_plan(self, target, target_info):
-        """Execute scan plan"""
+    def _execute_plan(self, target, scan_id):
+        """Execute the scan plan"""
         total_phases = len(self.scan_plan)
         
-        for phase_idx, phase in enumerate(self.scan_plan, 1):
-            print_section(f"Phase {phase_idx}/{total_phases}: {phase['phase']}")
+        for phase in self.scan_plan:
+            print_subsection(f"Phase {phase['phase']}/{total_phases}: {phase['name']}")
+            print_info(f"Tools: {', '.join(phase['tools'])}")
+            print()
             
-            for step in phase['steps']:
-                self._execute_step(target, target_info, step)
+            for tool in phase['tools']:
+                try:
+                    self._execute_tool(tool, target, scan_id)
+                except Exception as e:
+                    print_warning(f"  Tool {tool} failed: {e}")
+            
+            print()
     
-    def _execute_step(self, target, target_info, step):
-        """Execute single scan step"""
-        tool = step['tool']
-        print_info(f"Running: {step['name']}...")
+    def _execute_tool(self, tool, target, scan_id):
+        """Execute a specific tool"""
+        print_info(f"  Running {tool}...")
         
         try:
-            if tool == 'subdomain':
-                from tools.recon.subdomain import SubdomainEnumerator
-                scanner = SubdomainEnumerator()
-                result = scanner.enumerate(target_info['hostname'])
-                self.results['subdomains'] = list(result) if result else []
-            
-            elif tool == 'dns':
-                from tools.recon.dns_lookup import DNSLookup
-                scanner = DNSLookup()
-                result = scanner.lookup(target_info['hostname'])
-                self.results['dns'] = result
-            
-            elif tool == 'whois':
+            if tool == 'whois_lookup':
                 from tools.recon.whois_lookup import WhoisLookup
                 scanner = WhoisLookup()
-                result = scanner.lookup(target_info['hostname'])
+                result = scanner.lookup(target)
                 self.results['whois'] = result
             
-            elif tool == 'port':
-                from tools.recon.port_scanner import PortScanner
-                scanner = PortScanner()
-                result = scanner.scan(target_info['hostname'])
-                self.results['ports'] = result
-                target_info['open_ports'] = [p['port'] for p in result] if result else []
+            elif tool == 'dns_lookup':
+                from tools.recon.dns_lookup import DNSLookup
+                scanner = DNSLookup()
+                result = scanner.lookup(target)
+                self.results['dns'] = result
             
-            elif tool == 'ip':
-                from tools.recon.ip_lookup import IPLookup
-                scanner = IPLookup()
-                result = scanner.lookup(target_info['hostname'])
-                self.results['ip_info'] = result
+            elif tool == 'header_analyzer':
+                from tools.web.header_analyzer import HeaderAnalyzer
+                analyzer = HeaderAnalyzer()
+                result = analyzer.analyze(target)
+                self.results['headers'] = result
             
-            elif tool == 'tech':
+            elif tool == 'tech_fingerprint':
                 from tools.recon.tech_fingerprint import TechFingerprint
-                scanner = TechFingerprint()
-                result = scanner.detect(target)
-                self.results['technologies'] = result
+                fingerprinter = TechFingerprint()
+                result = fingerprinter.fingerprint(target)
+                self.results['tech'] = result
             
-            elif tool == 'email':
-                from tools.recon.email_harvest import EmailHarvester
-                scanner = EmailHarvester()
-                result = scanner.harvest(target_info['hostname'])
-                self.results['emails'] = list(result) if result else []
+            elif tool == 'ssl_checker':
+                from tools.scanner.ssl_checker import SSLChecker
+                checker = SSLChecker()
+                result = checker.scan(target)
+                self.results['ssl'] = result
             
-            elif tool == 'vuln':
+            elif tool == 'vuln_scanner':
                 from tools.scanner.vuln_scanner import VulnScanner
                 scanner = VulnScanner()
                 result = scanner.scan(target)
-                self.results['vulnerabilities'] = result
+                self.results['vuln'] = result
             
-            elif tool == 'sqli':
+            elif tool == 'dir_bruteforce':
+                from tools.scanner.dir_bruteforce import DirectoryBruteforcer
+                scanner = DirectoryBruteforcer()
+                result = scanner.scan(target, threads=50)
+                self.results['dir'] = result
+            
+            elif tool == 'sql_injection':
                 from tools.scanner.sql_injection import SQLInjectionScanner
                 scanner = SQLInjectionScanner()
                 result = scanner.scan(target)
                 self.results['sqli'] = result
             
-            elif tool == 'xss':
+            elif tool == 'xss_scanner':
                 from tools.scanner.xss_scanner import XSSScanner
                 scanner = XSSScanner()
                 result = scanner.scan(target)
                 self.results['xss'] = result
             
-            elif tool == 'headers':
-                from tools.web.header_analyzer import HeaderAnalyzer
-                scanner = HeaderAnalyzer()
-                result = scanner.analyze(target)
-                self.results['headers'] = result
+            elif tool == 'port_scanner':
+                from tools.recon.port_scanner import PortScanner
+                scanner = PortScanner()
+                result = scanner.scan(target, ports="1-1024")
+                self.results['ports'] = result
             
-            elif tool == 'ssl':
-                from tools.scanner.ssl_checker import SSLChecker
-                scanner = SSLChecker()
-                hostname = target_info['hostname']
-                result = scanner.check(hostname)
-                self.results['ssl'] = result
-            
-            elif tool == 'dir':
-                from tools.scanner.dir_bruteforce import DirBruteforcer
-                scanner = DirBruteforcer()
-                result = scanner.bruteforce(target)
-                self.results['directories'] = result
-            
-            elif tool == 'waf':
-                from tools.scanner.waf_detect import WAFDetector
-                scanner = WAFDetector()
-                result = scanner.detect(target)
-                self.results['waf'] = result
-            
-            elif tool == 'credential':
-                from tools.exploit.credential_harvest import CredentialHarvester
-                harvester = CredentialHarvester()
-                result = harvester.harvest(target)
-                self.results['credentials'] = result
-            
-            print_success(f"  Completed: {step['name']}")
+            print_success(f"  {tool} completed")
         
         except Exception as e:
-            print_error(f"  Failed: {step['name']} - {e}")
-            self.logger.error(f"Scan step failed: {step['name']} - {e}")
+            print_error(f"  {tool} failed: {e}")
     
     def _generate_summary(self):
         """Generate scan summary"""
-        print_section("Scan Summary")
+        elapsed = (datetime.now() - self.start_time).total_seconds()
         
-        # Count findings
-        total_findings = 0
+        print_section("AUTO SCAN SUMMARY")
         
-        if 'vulnerabilities' in self.results:
-            vulns = self.results['vulnerabilities']
-            total_findings += len(vulns)
-            cprint(f"    Vulnerabilities: {len(vulns)}", Colors.BRED)
+        print(f"  {Icons.TARGET} {Colors.BCYAN}Target:{Colors.BWHITE}       {self.target_info['original']}")
+        print(f"  {Icons.INFO} {Colors.BCYAN}Duration:{Colors.BWHITE}      {elapsed:.1f}s")
+        print(f"  {Icons.INFO} {Colors.BCYAN}Phases:{Colors.BWHITE}        {len(self.scan_plan)}")
+        print(f"  {Icons.INFO} {Colors.BCYAN}Results:{Colors.BWHITE}       {len(self.results)}")
         
-        if 'sqli' in self.results:
-            sqli = self.results['sqli']
-            total_findings += len(sqli)
-            cprint(f"    SQL Injection: {len(sqli)}", Colors.BRED)
+        # Count vulnerabilities
+        total_vulns = 0
+        if 'vuln' in self.results and isinstance(self.results['vuln'], list):
+            total_vulns = len(self.results['vuln'])
         
-        if 'xss' in self.results:
-            xss = self.results['xss']
-            total_findings += len(xss)
-            cprint(f"    XSS: {len(xss)}", Colors.BRED)
+        print(f"  {Icons.WARNING} {Colors.BCYAN}Vulnerabilities:{Colors.BWHITE} {total_vulns}")
         
-        if 'subdomains' in self.results:
-            subs = self.results['subdomains']
-            cprint(f"    Subdomains: {len(subs)}", Colors.BCYAN)
-        
-        if 'ports' in self.results:
-            ports = self.results['ports']
-            cprint(f"    Open Ports: {len(ports)}", Colors.BCYAN)
-        
-        if 'emails' in self.results:
-            emails = self.results['emails']
-            cprint(f"    Emails: {len(emails)}", Colors.BCYAN)
-        
+        print_separator("-", 50)
         print()
-        cprint(f"    Total Findings: {total_findings}", Colors.BGREEN if total_findings == 0 else Colors.BRED)
+        
+        # Recommendations
+        print_subsection("Recommendations")
+        
+        if self.target_info.get('is_web'):
+            print_info("- Run full security audit for comprehensive testing")
+            print_info("- Check for SQL injection and XSS vulnerabilities")
+            print_info("- Verify all security headers are properly configured")
+        
+        print_info("- Keep all software up to date")
+        print_info("- Implement security best practices")
+        print_info("- Regular security assessments recommended")
+        print()
     
     def _save_results(self, target, output_file):
-        """Save results to file"""
+        """Save results to JSON file"""
         try:
             output_path = Path(output_file)
             output_path.parent.mkdir(parents=True, exist_ok=True)
             
+            results = {
+                'target': target,
+                'scan_time': self.start_time.isoformat(),
+                'target_info': self.target_info,
+                'scan_plan': self.scan_plan,
+                'results': self.results,
+            }
+            
             with open(output_path, 'w') as f:
-                json.dump({
-                    'target': target,
-                    'scan_plan': self.scan_plan,
-                    'results': self.results
-                }, f, indent=2, default=str)
+                json.dump(results, f, indent=2, default=str)
             
             print_success(f"Results saved to {output_file}")
         except Exception as e:
