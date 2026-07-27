@@ -159,7 +159,7 @@ SKULL_FULL = r"""
                                \/
 """
 
-SKULL_MINI = r"""
+SKULL_MINI = r'''
     .-""""-.
    /        \
   |  O    O  |
@@ -167,7 +167,7 @@ SKULL_MINI = r"""
   |   \__/   |
    \        /
     '-....-'
-"""
+'''
 
 SKULL_CROSS = r"""
        ___________
