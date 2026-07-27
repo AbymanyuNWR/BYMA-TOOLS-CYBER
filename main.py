@@ -12,11 +12,12 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from core.colors import (
-    print_banner, print_success, print_error, print_warning,
-    print_info, print_section, print_table, cprint, Colors, pause,
-    print_header, print_footer, print_scan_start, print_scan_complete,
-    print_vuln_found, print_loader, print_status, print_target,
-    print_result, print_separator, print_subsection, Icons, clear_screen
+    print_banner, print_banner_login, print_banner_tool, print_success, 
+    print_error, print_warning, print_info, print_section, print_table, 
+    cprint, Colors, pause, print_header, print_footer, print_scan_start, 
+    print_scan_complete, print_vuln_found, print_loader, print_status, 
+    print_target, print_result, print_separator, print_subsection, Icons, 
+    clear_screen, print_menu_header, LOGO_SKULL, SKULL_MINI, SKULL_CROSS
 )
 from core.logger import get_logger
 from core.database import get_database
@@ -191,11 +192,11 @@ Examples:
     def _run_interactive(self):
         """Run interactive mode with login"""
         clear_screen()
-        print_banner()
+        print_banner_login()
         
         # Check if users exist
         if not self.user_manager.has_users():
-            print_header("WELCOME - PERTAMA KALI MENGGUNAKAN BYMA TOOLS")
+            print_header("WELCOME - PERTAMA KALI MENGGUNAKAN BYMA CYBER")
             cprint("  Anda perlu membuat akun terlebih dahulu.", Colors.BYELLOW)
             print()
             self._register_first_user()
@@ -239,22 +240,34 @@ Examples:
     
     def _show_login_menu(self):
         """Show login menu"""
-        print_header("LOGIN")
+        print()
+        print(f"  {Colors.BCYAN}+{'=' * 50}+{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BRED}{Colors.BRIGHT}              .---.       .---.              {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BRED}{Colors.BRIGHT}             /     \\     /     \\             {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BRED}{Colors.BRIGHT}            / () () \\   / () () \\            {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BRED}{Colors.BRIGHT}            \\  ___  /   \\  ___  /            {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BRED}{Colors.BRIGHT}             |     |     |     |             {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BRED}{Colors.BRIGHT}             |  _  |     |  _  |             {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BRED}{Colors.BRIGHT}             |_____|     |_____|             {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BGREEN}{Colors.BRIGHT}              L O G I N                     {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BWHITE}          BYMA CYBER v1.0.0                 {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}+{'=' * 50}+{Colors.RESET}")
+        print()
         
         options = {
-            "1": "[>] Login",
-            "2": "[+] Register (Buat Akun Baru)",
-            "3": "[X] Keluar"
+            "1": ("[>]", "LOGIN", "Masuk ke akun"),
+            "2": ("[+]", "REGISTER", "Buat akun baru"),
+            "3": ("[X]", "KELUAR", "Keluar program"),
         }
         
-        for key, value in options.items():
-            cprint(f"  {key}. {value}", Colors.BWHITE)
+        for key, (icon, name, desc) in options.items():
+            cprint(f"  {key}. {icon} {Colors.BGREEN}{name} {Colors.BBLACK}({desc}){Colors.RESET}", Colors.BWHITE)
         
         print()
         
         while True:
             try:
-                choice = input("  Pilih (1-3): ").strip()
+                choice = input(f"  {Colors.BCYAN}[{Colors.BGREEN}#{Colors.BCYAN}]{Colors.BWHITE} Pilih (1-3): {Colors.RESET}").strip()
                 
                 if choice == "1":
                     self._login()
@@ -334,43 +347,47 @@ Examples:
     def _show_main_menu(self):
         """Show main menu after login"""
         clear_screen()
-        print_banner()
         
         # User info
         user = self.user_manager.get_current_user()
-        cprint(f"  Selamat datang, {Colors.BGREEN}{user}{Colors.BCYAN}!", Colors.BCYAN)
-        print_separator("=", 60, Colors.BCYAN)
+        
+        # Show skull and menu header
+        print_menu_header()
+        cprint(f"  Welcome, {Colors.BGREEN}{user}{Colors.BCYAN}!", Colors.BCYAN)
+        print_separator("=", 56, Colors.BCYAN)
         print()
         
-        # Main menu
-        print_header("MENU UTAMA")
+        # Main menu with improved styling
+        print(f"  {Colors.BCYAN}+{'=' * 56}+{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BGREEN}{Colors.BRIGHT}  [>] MAIN MENU {' ' * 40}  {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}+{'-' * 56}+{Colors.RESET}")
         
         options = {
-            "1": "[>] Reconnaissance (Pengintaian)",
-            "2": "[S] Vulnerability Scanner",
-            "3": "[N] Network Tools",
-            "4": "[P] Password Tools",
-            "5": "[W] Web Analysis",
-            "6": "[E] Exploit Tools",
-            "7": "[F] Forensics",
-            "8": "[A] Auto Scan (Cerdas)",
-            "9": "[R] Generate Report",
-            "10": "[U] Plugin Manager",
-            "11": "[D] Database & Statistics",
-            "12": "[L] Logout",
-            "0": "[X] Keluar"
+            "1": ("[R]", "RECONNAISSANCE", "Pengintaian target"),
+            "2": ("[S]", "SCANNER", "Pemindaian kerentanan"),
+            "3": ("[N]", "NETWORK", "Alat jaringan"),
+            "4": ("[P]", "PASSWORD", "Alat kata sandi"),
+            "5": ("[W]", "WEB", "Analisis web"),
+            "6": ("[E]", "EXPLOIT", "Alat eksploitasi"),
+            "7": ("[F]", "FORENSICS", "Analisis digital"),
+            "8": ("[A]", "AUTO SCAN", "Pemindaian cerdas"),
+            "9": ("[R]", "REPORT", "Buat laporan"),
+            "10": ("[U]", "PLUGINS", "Manajemen plugin"),
+            "11": ("[D]", "DATABASE", "Statistik data"),
         }
         
-        for key, value in options.items():
-            if key in ["12", "0"]:
-                print()
-            cprint(f"  {key:>2}. {value}", Colors.BWHITE)
+        for key, (icon, name, desc) in options.items():
+            print(f"  {Colors.BCYAN}|{Colors.BWHITE}  {Colors.BYELLOW}{key:>2}. {icon} {Colors.BGREEN}{name:<12} {Colors.BBLACK}{desc:<22} {Colors.BCYAN}|{Colors.RESET}")
         
+        print(f"  {Colors.BCYAN}+{'-' * 56}+{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BRED}  12. [L] LOGOUT                                {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BRED}   0. [X] KELUAR                                {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}+{'=' * 56}+{Colors.RESET}")
         print()
         
         while True:
             try:
-                choice = input("  Pilih menu (0-12): ").strip()
+                choice = input(f"  {Colors.BCYAN}[{Colors.BGREEN}#{Colors.BCYAN}]{Colors.BWHITE} Pilih menu (0-12): {Colors.RESET}").strip()
                 
                 if choice == "1":
                     self._show_recon_menu()
@@ -407,28 +424,33 @@ Examples:
         """Reconnaissance submenu"""
         self.session.push_menu("main")
         clear_screen()
-        print_banner()
-        print_header("RECONNAISSANCE TOOLS")
+        print_banner_tool("RECONNAISSANCE", "Pengintaian dan pengumpulan informasi")
         
         options = {
-            "1": "[S] Subdomain Enumeration",
-            "2": "[P] Port Scanning",
-            "3": "[W] WHOIS Lookup",
-            "4": "[D] DNS Lookup",
-            "5": "[I] IP Geolocation",
-            "6": "[E] Email Harvesting",
-            "7": "[T] Technology Fingerprint",
-            "0": "[<] Kembali ke Menu Utama"
+            "1": ("[S]", "SUBDOMAIN", "Enumerasi subdomain"),
+            "2": ("[P]", "PORT SCAN", "Pemindaian port"),
+            "3": ("[W]", "WHOIS", "Lookup WHOIS"),
+            "4": ("[D]", "DNS", "Lookup DNS"),
+            "5": ("[I]", "IP LOOKUP", "Geolokasi IP"),
+            "6": ("[E]", "EMAIL", "Pengumpulan email"),
+            "7": ("[T]", "TECH", "Deteksi teknologi"),
         }
         
-        for key, value in options.items():
-            cprint(f"  {key}. {value}", Colors.BWHITE)
+        print(f"  {Colors.BCYAN}+{'=' * 50}+{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BGREEN}{Colors.BRIGHT}  TOOLS {' ' * 42}  {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}+{'-' * 50}+{Colors.RESET}")
         
+        for key, (icon, name, desc) in options.items():
+            print(f"  {Colors.BCYAN}|{Colors.BWHITE}  {Colors.BYELLOW}{key}. {icon} {Colors.BGREEN}{name:<12} {Colors.BBLACK}{desc:<20} {Colors.BCYAN}|{Colors.RESET}")
+        
+        print(f"  {Colors.BCYAN}+{'-' * 50}+{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BRED}  0. [<] KEMBALI {' ' * 33}  {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}+{'=' * 50}+{Colors.RESET}")
         print()
         
         while True:
             try:
-                choice = input("  Pilih (0-7): ").strip()
+                choice = input(f"  {Colors.BCYAN}[{Colors.BGREEN}#{Colors.BCYAN}]{Colors.BWHITE} Pilih (0-7): {Colors.RESET}").strip()
                 
                 if choice == "0":
                     self._go_back()
@@ -455,28 +477,33 @@ Examples:
         """Scanner submenu"""
         self.session.push_menu("main")
         clear_screen()
-        print_banner()
-        print_header("VULNERABILITY SCANNER")
+        print_banner_tool("VULNERABILITY SCANNER", "Pemindaian kerentanan keamanan")
         
         options = {
-            "1": "[V] General Vulnerability Scan",
-            "2": "[S] SQL Injection Test",
-            "3": "[X] XSS Scanner",
-            "4": "[D] Directory Bruteforce",
-            "5": "[L] SSL/TLS Checker",
-            "6": "[C] CORS Scanner",
-            "7": "[W] WAF Detection",
-            "0": "[<] Kembali ke Menu Utama"
+            "1": ("[V]", "VULN SCAN", "Pemindaian umum"),
+            "2": ("[S]", "SQL INJECTION", "Uji injeksi SQL"),
+            "3": ("[X]", "XSS", "Pemindaian XSS"),
+            "4": ("[D]", "DIR BRUTE", "Bruteforce direktori"),
+            "5": ("[L]", "SSL/TLS", "Pemeriksaan SSL"),
+            "6": ("[C]", "CORS", "Pemindaian CORS"),
+            "7": ("[W]", "WAF", "Deteksi WAF"),
         }
         
-        for key, value in options.items():
-            cprint(f"  {key}. {value}", Colors.BWHITE)
+        print(f"  {Colors.BCYAN}+{'=' * 50}+{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BGREEN}{Colors.BRIGHT}  TOOLS {' ' * 42}  {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}+{'-' * 50}+{Colors.RESET}")
         
+        for key, (icon, name, desc) in options.items():
+            print(f"  {Colors.BCYAN}|{Colors.BWHITE}  {Colors.BYELLOW}{key}. {icon} {Colors.BGREEN}{name:<14} {Colors.BBLACK}{desc:<18} {Colors.BCYAN}|{Colors.RESET}")
+        
+        print(f"  {Colors.BCYAN}+{'-' * 50}+{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BRED}  0. [<] KEMBALI {' ' * 33}  {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}+{'=' * 50}+{Colors.RESET}")
         print()
         
         while True:
             try:
-                choice = input("  Pilih (0-7): ").strip()
+                choice = input(f"  {Colors.BCYAN}[{Colors.BGREEN}#{Colors.BCYAN}]{Colors.BWHITE} Pilih (0-7): {Colors.RESET}").strip()
                 
                 if choice == "0":
                     self._go_back()
@@ -503,26 +530,31 @@ Examples:
         """Network submenu"""
         self.session.push_menu("main")
         clear_screen()
-        print_banner()
-        print_header("NETWORK TOOLS")
+        print_banner_tool("NETWORK TOOLS", "Alat analisis dan pemindaian jaringan")
         
         options = {
-            "1": "[S] Network Scan (ARP Discovery)",
-            "2": "[P] Port Scan",
-            "3": "[N] Packet Sniffer",
-            "4": "[A] ARP Spoofing",
-            "5": "[T] Stealth Scan",
-            "0": "[<] Kembali ke Menu Utama"
+            "1": ("[S]", "NET SCAN", "Pemindaian jaringan"),
+            "2": ("[P]", "PORT SCAN", "Pemindaian port"),
+            "3": ("[N]", "SNIFFER", "Penangkap paket"),
+            "4": ("[A]", "ARP SPOOF", "Pemalsuan ARP"),
+            "5": ("[T]", "STEALTH", "Mode tersembunyi"),
         }
         
-        for key, value in options.items():
-            cprint(f"  {key}. {value}", Colors.BWHITE)
+        print(f"  {Colors.BCYAN}+{'=' * 50}+{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BGREEN}{Colors.BRIGHT}  TOOLS {' ' * 42}  {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}+{'-' * 50}+{Colors.RESET}")
         
+        for key, (icon, name, desc) in options.items():
+            print(f"  {Colors.BCYAN}|{Colors.BWHITE}  {Colors.BYELLOW}{key}. {icon} {Colors.BGREEN}{name:<12} {Colors.BBLACK}{desc:<20} {Colors.BCYAN}|{Colors.RESET}")
+        
+        print(f"  {Colors.BCYAN}+{'-' * 50}+{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BRED}  0. [<] KEMBALI {' ' * 33}  {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}+{'=' * 50}+{Colors.RESET}")
         print()
         
         while True:
             try:
-                choice = input("  Pilih (0-5): ").strip()
+                choice = input(f"  {Colors.BCYAN}[{Colors.BGREEN}#{Colors.BCYAN}]{Colors.BWHITE} Pilih (0-5): {Colors.RESET}").strip()
                 
                 if choice == "0":
                     self._go_back()
@@ -545,25 +577,30 @@ Examples:
         """Password submenu"""
         self.session.push_menu("main")
         clear_screen()
-        print_banner()
-        print_header("PASSWORD TOOLS")
+        print_banner_tool("PASSWORD TOOLS", "Alat keamanan kata sandi")
         
         options = {
-            "1": "[H] Generate Hash",
-            "2": "[C] Crack Hash",
-            "3": "[G] Generate Password",
-            "4": "[B] Brute Force",
-            "0": "[<] Kembali ke Menu Utama"
+            "1": ("[H]", "HASH", "Buat hash"),
+            "2": ("[C]", "CRACK", "Pecahkan hash"),
+            "3": ("[G]", "GENERATE", "Buat kata sandi"),
+            "4": ("[B]", "BRUTE", "Brute force"),
         }
         
-        for key, value in options.items():
-            cprint(f"  {key}. {value}", Colors.BWHITE)
+        print(f"  {Colors.BCYAN}+{'=' * 50}+{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BGREEN}{Colors.BRIGHT}  TOOLS {' ' * 42}  {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}+{'-' * 50}+{Colors.RESET}")
         
+        for key, (icon, name, desc) in options.items():
+            print(f"  {Colors.BCYAN}|{Colors.BWHITE}  {Colors.BYELLOW}{key}. {icon} {Colors.BGREEN}{name:<12} {Colors.BBLACK}{desc:<20} {Colors.BCYAN}|{Colors.RESET}")
+        
+        print(f"  {Colors.BCYAN}+{'-' * 50}+{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BRED}  0. [<] KEMBALI {' ' * 33}  {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}+{'=' * 50}+{Colors.RESET}")
         print()
         
         while True:
             try:
-                choice = input("  Pilih (0-4): ").strip()
+                choice = input(f"  {Colors.BCYAN}[{Colors.BGREEN}#{Colors.BCYAN}]{Colors.BWHITE} Pilih (0-4): {Colors.RESET}").strip()
                 
                 if choice == "0":
                     self._go_back()
@@ -584,24 +621,29 @@ Examples:
         """Web submenu"""
         self.session.push_menu("main")
         clear_screen()
-        print_banner()
-        print_header("WEB ANALYSIS")
+        print_banner_tool("WEB ANALYSIS", "Alat analisis keamanan web")
         
         options = {
-            "1": "[C] Crawl Website",
-            "2": "[H] Analyze HTTP Headers",
-            "3": "[P] Proxy Scraper",
-            "0": "[<] Kembali ke Menu Utama"
+            "1": ("[C]", "CRAWL", "Perayapan situs"),
+            "2": ("[H]", "HEADERS", "Analisis header HTTP"),
+            "3": ("[P]", "PROXY", "Pengumpulan proxy"),
         }
         
-        for key, value in options.items():
-            cprint(f"  {key}. {value}", Colors.BWHITE)
+        print(f"  {Colors.BCYAN}+{'=' * 50}+{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BGREEN}{Colors.BRIGHT}  TOOLS {' ' * 42}  {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}+{'-' * 50}+{Colors.RESET}")
         
+        for key, (icon, name, desc) in options.items():
+            print(f"  {Colors.BCYAN}|{Colors.BWHITE}  {Colors.BYELLOW}{key}. {icon} {Colors.BGREEN}{name:<12} {Colors.BBLACK}{desc:<20} {Colors.BCYAN}|{Colors.RESET}")
+        
+        print(f"  {Colors.BCYAN}+{'-' * 50}+{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BRED}  0. [<] KEMBALI {' ' * 33}  {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}+{'=' * 50}+{Colors.RESET}")
         print()
         
         while True:
             try:
-                choice = input("  Pilih (0-3): ").strip()
+                choice = input(f"  {Colors.BCYAN}[{Colors.BGREEN}#{Colors.BCYAN}]{Colors.BWHITE} Pilih (0-3): {Colors.RESET}").strip()
                 
                 if choice == "0":
                     self._go_back()
@@ -620,24 +662,29 @@ Examples:
         """Exploit submenu"""
         self.session.push_menu("main")
         clear_screen()
-        print_banner()
-        print_header("EXPLOIT TOOLS")
+        print_banner_tool("EXPLOIT TOOLS", "Alat eksploitasi keamanan")
         
         options = {
-            "1": "[R] Reverse Shell Generator",
-            "2": "[W] Webshell Generator",
-            "3": "[C] Credential Harvester",
-            "0": "[<] Kembali ke Menu Utama"
+            "1": ("[R]", "REVERSE SHELL", "Pembuat reverse shell"),
+            "2": ("[W]", "WEBSHELL", "Pembuat webshell"),
+            "3": ("[C]", "CREDENTIAL", "Pengumpulan kredensial"),
         }
         
-        for key, value in options.items():
-            cprint(f"  {key}. {value}", Colors.BWHITE)
+        print(f"  {Colors.BCYAN}+{'=' * 50}+{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BGREEN}{Colors.BRIGHT}  TOOLS {' ' * 42}  {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}+{'-' * 50}+{Colors.RESET}")
         
+        for key, (icon, name, desc) in options.items():
+            print(f"  {Colors.BCYAN}|{Colors.BWHITE}  {Colors.BYELLOW}{key}. {icon} {Colors.BGREEN}{name:<15} {Colors.BBLACK}{desc:<16} {Colors.BCYAN}|{Colors.RESET}")
+        
+        print(f"  {Colors.BCYAN}+{'-' * 50}+{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BRED}  0. [<] KEMBALI {' ' * 33}  {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}+{'=' * 50}+{Colors.RESET}")
         print()
         
         while True:
             try:
-                choice = input("  Pilih (0-3): ").strip()
+                choice = input(f"  {Colors.BCYAN}[{Colors.BGREEN}#{Colors.BCYAN}]{Colors.BWHITE} Pilih (0-3): {Colors.RESET}").strip()
                 
                 if choice == "0":
                     self._go_back()
@@ -656,24 +703,29 @@ Examples:
         """Forensics submenu"""
         self.session.push_menu("main")
         clear_screen()
-        print_banner()
-        print_header("FORENSICS TOOLS")
+        print_banner_tool("FORENSICS", "Analisis dan penyelidikan digital")
         
         options = {
-            "1": "[A] Analyze File",
-            "2": "[S] Extract Strings",
-            "3": "[H] Check File Hash",
-            "0": "[<] Kembali ke Menu Utama"
+            "1": ("[A]", "FILE ANALYZER", "Analisis file"),
+            "2": ("[S]", "STRINGS", "Ekstrak string"),
+            "3": ("[H]", "HASH CHECK", "Periksa hash file"),
         }
         
-        for key, value in options.items():
-            cprint(f"  {key}. {value}", Colors.BWHITE)
+        print(f"  {Colors.BCYAN}+{'=' * 50}+{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BGREEN}{Colors.BRIGHT}  TOOLS {' ' * 42}  {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}+{'-' * 50}+{Colors.RESET}")
         
+        for key, (icon, name, desc) in options.items():
+            print(f"  {Colors.BCYAN}|{Colors.BWHITE}  {Colors.BYELLOW}{key}. {icon} {Colors.BGREEN}{name:<15} {Colors.BBLACK}{desc:<16} {Colors.BCYAN}|{Colors.RESET}")
+        
+        print(f"  {Colors.BCYAN}+{'-' * 50}+{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BRED}  0. [<] KEMBALI {' ' * 33}  {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}+{'=' * 50}+{Colors.RESET}")
         print()
         
         while True:
             try:
-                choice = input("  Pilih (0-3): ").strip()
+                choice = input(f"  {Colors.BCYAN}[{Colors.BGREEN}#{Colors.BCYAN}]{Colors.BWHITE} Pilih (0-3): {Colors.RESET}").strip()
                 
                 if choice == "0":
                     self._go_back()
@@ -692,25 +744,30 @@ Examples:
         """Plugin submenu"""
         self.session.push_menu("main")
         clear_screen()
-        print_banner()
-        print_header("PLUGIN MANAGER")
+        print_banner_tool("PLUGIN MANAGER", "Manajemen plugin eksternal")
         
         options = {
-            "1": "[L] List Plugins",
-            "2": "[R] Run Plugin",
-            "3": "[C] Create Plugin",
-            "4": "[D] Delete Plugin",
-            "0": "[<] Kembali ke Menu Utama"
+            "1": ("[L]", "LIST", "Daftar plugin"),
+            "2": ("[R]", "RUN", "Jalankan plugin"),
+            "3": ("[C]", "CREATE", "Buat plugin"),
+            "4": ("[D]", "DELETE", "Hapus plugin"),
         }
         
-        for key, value in options.items():
-            cprint(f"  {key}. {value}", Colors.BWHITE)
+        print(f"  {Colors.BCYAN}+{'=' * 50}+{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BGREEN}{Colors.BRIGHT}  TOOLS {' ' * 42}  {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}+{'-' * 50}+{Colors.RESET}")
         
+        for key, (icon, name, desc) in options.items():
+            print(f"  {Colors.BCYAN}|{Colors.BWHITE}  {Colors.BYELLOW}{key}. {icon} {Colors.BGREEN}{name:<12} {Colors.BBLACK}{desc:<20} {Colors.BCYAN}|{Colors.RESET}")
+        
+        print(f"  {Colors.BCYAN}+{'-' * 50}+{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BRED}  0. [<] KEMBALI {' ' * 33}  {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}+{'=' * 50}+{Colors.RESET}")
         print()
         
         while True:
             try:
-                choice = input("  Pilih (0-4): ").strip()
+                choice = input(f"  {Colors.BCYAN}[{Colors.BGREEN}#{Colors.BCYAN}]{Colors.BWHITE} Pilih (0-4): {Colors.RESET}").strip()
                 
                 if choice == "0":
                     self._go_back()
@@ -731,24 +788,29 @@ Examples:
         """Database submenu"""
         self.session.push_menu("main")
         clear_screen()
-        print_banner()
-        print_header("DATABASE & STATISTICS")
+        print_banner_tool("DATABASE & STATISTICS", "Manajemen basis data dan statistik")
         
         options = {
-            "1": "[S] Show Statistics",
-            "2": "[H] Scan History",
-            "3": "[C] Clear Database",
-            "0": "[<] Kembali ke Menu Utama"
+            "1": ("[S]", "STATISTICS", "Tampilkan statistik"),
+            "2": ("[H]", "HISTORY", "Riwayat pemindaian"),
+            "3": ("[C]", "CLEAR", "Bersihkan database"),
         }
         
-        for key, value in options.items():
-            cprint(f"  {key}. {value}", Colors.BWHITE)
+        print(f"  {Colors.BCYAN}+{'=' * 50}+{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BGREEN}{Colors.BRIGHT}  TOOLS {' ' * 42}  {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}+{'-' * 50}+{Colors.RESET}")
         
+        for key, (icon, name, desc) in options.items():
+            print(f"  {Colors.BCYAN}|{Colors.BWHITE}  {Colors.BYELLOW}{key}. {icon} {Colors.BGREEN}{name:<12} {Colors.BBLACK}{desc:<20} {Colors.BCYAN}|{Colors.RESET}")
+        
+        print(f"  {Colors.BCYAN}+{'-' * 50}+{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BRED}  0. [<] KEMBALI {' ' * 33}  {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}+{'=' * 50}+{Colors.RESET}")
         print()
         
         while True:
             try:
-                choice = input("  Pilih (0-3): ").strip()
+                choice = input(f"  {Colors.BCYAN}[{Colors.BGREEN}#{Colors.BCYAN}]{Colors.BWHITE} Pilih (0-3): {Colors.RESET}").strip()
                 
                 if choice == "0":
                     self._go_back()
@@ -783,10 +845,22 @@ Examples:
     
     def _exit_program(self):
         """Exit program"""
+        clear_screen()
         print()
-        print_header("TERIMA KASIH!")
-        cprint("  Terima kasih telah menggunakan BYMA TOOLS!", Colors.BGREEN)
-        cprint("  Sampai jumpa! 👋", Colors.BYELLOW)
+        print(f"  {Colors.BCYAN}{'=' * 50}{Colors.RESET}")
+        print(f"  {Colors.BRED}{Colors.BRIGHT}              .---.       .---.{Colors.RESET}")
+        print(f"  {Colors.BRED}{Colors.BRIGHT}             /     \\     /     \\{Colors.RESET}")
+        print(f"  {Colors.BRED}{Colors.BRIGHT}            / () () \\   / () () \\{Colors.RESET}")
+        print(f"  {Colors.BRED}{Colors.BRIGHT}            \\  ___  /   \\  ___  /{Colors.RESET}")
+        print(f"  {Colors.BRED}{Colors.BRIGHT}             |     |     |     |{Colors.RESET}")
+        print(f"  {Colors.BRED}{Colors.BRIGHT}             |  _  |     |  _  |{Colors.RESET}")
+        print(f"  {Colors.BRED}{Colors.BRIGHT}             |_____|     |_____|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}{'=' * 50}{Colors.RESET}")
+        print()
+        cprint(f"  Terima kasih telah menggunakan {Colors.BGREEN}BYMA CYBER{Colors.BWHITE}!", Colors.BWHITE)
+        cprint(f"  Sampai jumpa! Stay safe!", Colors.BYELLOW)
+        print()
+        print(f"  {Colors.BCYAN}{'=' * 50}{Colors.RESET}")
         print()
         sys.exit(0)
     

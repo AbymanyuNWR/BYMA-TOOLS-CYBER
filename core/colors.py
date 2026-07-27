@@ -1,6 +1,6 @@
 """
 BYMA TOOLS - Terminal Colors & Output System
-Sistem warna dan output untuk terminal dengan tema cyber
+Sistem warna dan output untuk tema cyber profesional
 """
 from colorama import init, Fore, Back, Style
 import sys
@@ -76,20 +76,127 @@ class Icons:
     RADIO_ON = "(*)"
     RADIO_OFF = "( )"
     TOOL = "[T]"
+    SKULL = "(X)"
+    CYBER = "@@"
 
 
 icons = Icons()
 
 
-# ==================== ASCII ART BANNER ====================
+# ==================== ASCII ART LOGO ====================
 
-BANNER_ASCII = r"""
-      ____               _ __    __ ____  ____  ___    ____
-     / __ )____ _____  (_) /   / // __ \/ __ \/   |  / __ \
-    / __  / __ `/ __ \/ / /   / // / / / / / / /| | / / / /
-   / /_/ / /_/ / / / / / /___/ // /_/ / /_/ / __ |/ /_/ /
-  /_____/\__,_/_/ /_/_/_/_____/_/____/\____/_/  |_/_____/
+LOGO_SKULL = r"""
+          _____
+         /     \
+        / () () \
+        \  ___  /
+         |     |
+         |  _  |
+         |_____|
+        /|     |\
+       / |     | \
+      /  |_____|  \
+     /____     ____\
+          |   |
+          |   |
+          |___|
+"""
 
+LOGO_BYMA = r"""
+   ____  ___  ____  ________    ______ ____  ___    ____
+  | __ )/ _ \| __ )|__  / _ \  / ____/ __ \/   |  / __ \
+  |  _ \ | | |  _ \ / / |_) || |   | |  / /| | | / / / /
+  | |_) | |_| | |_) / /|  _ < | |___| |__/ / | |/ /_/ /
+  |____/ \___/|____/___|_| \_\\______\____/  |_/_____/
+"""
+
+LOGO_CYBER_FULL = r"""
+       _____                    _____   _____ ____  _     _     _
+      / ____|                  |  __ \ / ____/ __ \| |   | |   | |
+     | (___   _ __ ___  _   _ | |__) | |   | |  | | |   | |   | |
+      \___ \ | '_ ` _ \| | | ||  ___/| |   | |  | | |   | |   | |
+      ____) || | | | | | |_| || |    | |___| |__| | |___| |___| |____
+     |_____/ |_| |_| |_|\__,_||_|     \_____\____/ \_____\____/|______|
+"""
+
+LOGO_CYBER_SMALL = r"""
+   _____  _____ ____  _____    ____   ___  __  __
+  / ____||/ ____/ __ \|  __ \  | __ ) / _ \|  \/  |
+ | (___  | (___| |  | | |__) | |  _ \| | | | |\/| |
+  \___ \ |    \  __/|  _  /  | |_) | |_| | |  | |
+  ____) || |___| |   | | \ \  |  __/|  _/| |  | |
+ |_____/  \_____|_|   |_|  \_\ |_|   |_| |_|  |_|
+"""
+
+LOGO_CYBER_ART = r"""
+      ____  _  _  ____  ____  ____  ____
+     (  _ \( \( )(  _ \( ___)(_  _)( ___)
+      ) _ < )  (  )(_) ))__)   )(   )__)
+     (____/(_)\_)(____/(____) (__) (____)
+"""
+
+SKULL_FULL = r"""
+                        ________________
+                       /                \
+                      /                  \
+                     /    ____________    \
+                    |    /            \    |
+                    |   |   O      O   |   |
+                    |   |      <>      |   |
+                    |   |     \__/     |   |
+                    |    \            /    |
+                    |     \__________/     |
+                     \                    /
+                      \    \        /    /
+                       \    \      /    /
+                        \    \    /    /
+                         \    \  /    /
+                          \    \/    /
+                           \        /
+                            \      /
+                             \    /
+                              \  /
+                               \/
+"""
+
+SKULL_MINI = r"""
+    .-""""-.
+   /        \
+  |  O    O  |
+  |    <>    |
+  |   \__/   |
+   \        /
+    '-....-'
+"""
+
+SKULL_CROSS = r"""
+       ___________
+      /           \
+     /  O       O  \
+    |      <>      |
+    |     /  \     |
+    |    '----'    |
+     \            /
+      \__________/
+        |  ||  |
+        |  ||  |
+"""
+
+# Combined Logo: Skull + BYMA CYBER
+LOGO_MAIN = f"""
+{SKULL_CROSS}
+
+    ____  ___  ____  ________    ______ ____  ___    ____
+   | __ )/ _ \\| __ )|__  / _ \\  / ____/ __ \\   |  / __ \\
+   |  _ \\ | | |  _ \\ / / |_) || |   | |  / /| | | / / / /
+   | |_) | |_| | |_) / /|  _ < | |___| |__/ / | |/ /_/ /
+   |____/ \\___/|____/___|_| \\_\\\\______\\____/  |_/_____/
+
+"""
+
+# Short version for inline display
+LOGO_SHORT = f"""
+    {SKULL_MINI}   BYMA CYBER  v1.0.0
 """
 
 
@@ -105,22 +212,89 @@ def cprint(text, color=Colors.WHITE, end='\n', flush=True):
 
 
 def print_banner():
-    """Menampilkan banner BYMA TOOLS dengan tema cyber"""
+    """Menampilkan banner BYMA CYBER dengan tengkorak"""
     try:
-        print(f"{Colors.BCYAN}{Colors.BRIGHT}")
-        print("=" * 62)
+        clear_screen()
         print()
-        print(f"  {Colors.BGREEN}{BANNER_ASCII}{Colors.BCYAN}")
-        print(f"  {Colors.BYELLOW}  [>] Multi-Purpose Cybersecurity Toolkit{Colors.BCYAN}")
-        print(f"  {Colors.BWHITE}  [i] Version 1.0.0 | BYMA SECURITY{Colors.BCYAN}")
-        print()
-        print("=" * 62)
+        print(f"  {Colors.BRED}{Colors.BRIGHT}{'=' * 62}{Colors.RESET}")
+        print(f"  {Colors.BRED}{Colors.BRIGHT}|{' ' * 60}|{Colors.RESET}")
+        
+        # Skull with crossbones
+        skull_lines = SKULL_CROSS.split('\n')
+        for line in skull_lines:
+            if line.strip():
+                padding = 62 - len(line) - 2
+                print(f"  {Colors.BRED}|{Colors.BCYAN}{Colors.BRIGHT}  {line}{' ' * max(0, padding)}  {Colors.BRED}|{Colors.RESET}")
+        
+        print(f"  {Colors.BRED}|{' ' * 60}|{Colors.RESET}")
+        
+        # BYMA CYBER text
+        cyber_lines = LOGO_BYMA.strip().split('\n')
+        for line in cyber_lines:
+            if line.strip():
+                padding = 62 - len(line) - 2
+                print(f"  {Colors.BRED}|{Colors.BGREEN}{Colors.BRIGHT}  {line}{' ' * max(0, padding)}  {Colors.BRED}|{Colors.RESET}")
+        
+        print(f"  {Colors.BRED}|{' ' * 60}|{Colors.RESET}")
+        
+        # CYBER subtitle
+        print(f"  {Colors.BRED}|{Colors.BYELLOW}{Colors.BRIGHT}  {'C Y B E R   S E C U R I T Y   T O O L K I T':^60}  {Colors.BRED}|{Colors.RESET}")
+        print(f"  {Colors.BRED}|{' ' * 60}|{Colors.RESET}")
+        
+        # Version info
+        print(f"  {Colors.BRED}|{Colors.BWHITE}  {'Version 1.0.0 | Professional Edition':^60}  {Colors.BRED}|{Colors.RESET}")
+        print(f"  {Colors.BRED}|{' ' * 60}|{Colors.RESET}")
+        
+        print(f"  {Colors.BRED}|{'=' * 60}|{Colors.RESET}")
+        print(f"  {Colors.BRED}{Colors.BRIGHT}{'=' * 62}{Colors.RESET}")
         print(f"{Colors.RESET}")
+        
     except Exception:
         print(f"{Colors.BCYAN}{'=' * 62}{Colors.RESET}")
-        print(f"{Colors.BGREEN}  BYMA TOOLS - Multi-Purpose Cybersecurity Toolkit{Colors.RESET}")
-        print(f"{Colors.BWHITE}  Version 1.0.0 | BYMA SECURITY{Colors.RESET}")
+        print(f"{Colors.BGREEN}  BYMA CYBER - Cybersecurity Toolkit{Colors.RESET}")
+        print(f"{Colors.BWHITE}  Version 1.0.0 | Professional Edition{Colors.RESET}")
         print(f"{Colors.BCYAN}{'=' * 62}{Colors.RESET}")
+
+
+def print_banner_login():
+    """Banner untuk halaman login"""
+    try:
+        print()
+        print(f"  {Colors.BCYAN}{Colors.BRIGHT}{'=' * 50}{Colors.RESET}")
+        print()
+        
+        skull_lines = SKULL_MINI.split('\n')
+        for line in skull_lines:
+            if line.strip():
+                print(f"  {Colors.BCYAN}{Colors.BRIGHT}  {line}{Colors.RESET}")
+        
+        print()
+        print(f"  {Colors.BGREEN}{Colors.BRIGHT}{'BYMA CYBER':^50}{Colors.RESET}")
+        print(f"  {Colors.BYELLOW}{'Security Toolkit v1.0.0':^50}{Colors.RESET}")
+        print()
+        print(f"  {Colors.BCYAN}{Colors.BRIGHT}{'=' * 50}{Colors.RESET}")
+        print()
+        
+    except Exception:
+        print(f"{Colors.BCYAN}{'=' * 50}{Colors.RESET}")
+        print(f"{Colors.BGREEN}  BYMA CYBER{Colors.RESET}")
+        print(f"{Colors.BCYAN}{'=' * 50}{Colors.RESET}")
+
+
+def print_banner_tool(tool_name, description=""):
+    """Banner untuk tool-specific"""
+    try:
+        print()
+        print(f"  {Colors.BCYAN}+{'=' * 56}+{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BRED}{Colors.BRIGHT}  {SKULL_MINI.split(chr(10))[1]:^54}  {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BGREEN}{Colors.BRIGHT}  {tool_name.upper():^54}  {Colors.BCYAN}|{Colors.RESET}")
+        if description:
+            print(f"  {Colors.BCYAN}|{Colors.BYELLOW}  {description:^54}  {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}|{Colors.BWHITE}  {'BYMA CYBER v1.0.0':^54}  {Colors.BCYAN}|{Colors.RESET}")
+        print(f"  {Colors.BCYAN}+{'=' * 56}+{Colors.RESET}")
+        print()
+    except Exception:
+        print(f"\n  {Colors.BCYAN}[{tool_name}]{Colors.RESET}\n")
 
 
 def print_success(text):
@@ -165,32 +339,35 @@ def print_result(label, value, color=Colors.BWHITE):
 
 
 def print_table(headers, rows, widths=None):
-    """Print tabel dengan tema ASCII"""
+    """Print tabel dengan tema ASCII profesional"""
     if not widths:
         widths = [max(len(str(h)), max((len(str(r[i])) for r in rows), default=0))
                   for i, h in enumerate(headers)]
     
     # Top border
-    top = "  +" + "+".join("-" * (w + 2) for w in widths) + "+"
+    top = "  +" + "+".join("=" * (w + 2) for w in widths) + "+"
     print(f"{Colors.BCYAN}{top}{Colors.RESET}")
     
     # Header
-    header_cells = "|".join(f" {Colors.BCYAN}{Colors.BRIGHT}{h:^{widths[i]}}{Colors.RESET} " 
-                            for i, h in enumerate(headers))
-    print(f"  {Colors.BCYAN}|{Colors.RESET}{header_cells}{Colors.BCYAN}|{Colors.RESET}")
+    header_cells = []
+    for i, h in enumerate(headers):
+        header_cells.append(f" {Colors.BCYAN}{Colors.BRIGHT}{h:^{widths[i]}}{Colors.RESET} ")
+    print(f"  {Colors.BCYAN}|{'|'.join(header_cells)}|{Colors.RESET}")
     
     # Separator
-    sep = "+" + "+".join("=" * (w + 2) for w in widths) + "+"
+    sep = "+" + "+".join("-" * (w + 2) for w in widths) + "+"
     print(f"{Colors.BCYAN}{sep}{Colors.RESET}")
     
     # Rows
     for row in rows:
-        row_cells = "|".join(f" {Colors.BWHITE}{str(row[i]):^{widths[i]}}{Colors.RESET} " 
-                            for i in range(len(headers)))
-        print(f"  {Colors.BCYAN}|{Colors.RESET}{row_cells}{Colors.BCYAN}|{Colors.RESET}")
+        row_cells = []
+        for i in range(len(headers)):
+            cell_val = str(row[i]) if i < len(row) else ""
+            row_cells.append(f" {Colors.BWHITE}{cell_val:^{widths[i]}}{Colors.RESET} ")
+        print(f"  {Colors.BCYAN}|{'|'.join(row_cells)}|{Colors.RESET}")
     
     # Bottom border
-    bottom = "  +" + "+".join("-" * (w + 2) for w in widths) + "+"
+    bottom = "  +" + "+".join("=" * (w + 2) for w in widths) + "+"
     print(f"{Colors.BCYAN}{bottom}{Colors.RESET}")
 
 
@@ -213,11 +390,11 @@ def print_separator(char="=", length=60, color=Colors.BCYAN):
 
 
 def print_section(title):
-    """Print section header"""
+    """Print section header dengan style profesional"""
     print()
-    print(f"  {Colors.BCYAN}+{'=' * 58}+{Colors.RESET}")
-    print(f"  {Colors.BCYAN}|{Colors.BGREEN}{Colors.BRIGHT}  {icons.ARROW} {title.upper():^52}  {Colors.BCYAN}|{Colors.RESET}")
-    print(f"  {Colors.BCYAN}+{'=' * 58}+{Colors.RESET}")
+    print(f"  {Colors.BCYAN}+{'=' * 56}+{Colors.RESET}")
+    print(f"  {Colors.BCYAN}|{Colors.BGREEN}{Colors.BRIGHT}  {icons.SHIELD} {title.upper():^50}  {Colors.BCYAN}|{Colors.RESET}")
+    print(f"  {Colors.BCYAN}+{'=' * 56}+{Colors.RESET}")
     print()
 
 
@@ -271,26 +448,26 @@ def print_loader(text="Loading", duration=2):
 def print_scan_start(target, tool):
     """Print scan starting info"""
     print()
-    print(f"  {Colors.BCYAN}+{'=' * 58}+{Colors.RESET}")
-    print(f"  {Colors.BCYAN}|{Colors.BGREEN}  {icons.SHIELD} SCAN INITIATED {'-' * 41}{Colors.BCYAN}|{Colors.RESET}")
-    print(f"  {Colors.BCYAN}+{'-' * 58}+{Colors.RESET}")
-    print(f"  {Colors.BCYAN}|{Colors.BWHITE}  {icons.TARGET} Target:  {Colors.BYELLOW}{target:<42}{Colors.BCYAN}|{Colors.RESET}")
-    print(f"  {Colors.BCYAN}|{Colors.BWHITE}  {icons.TOOL} Tool:    {Colors.BGREEN}{tool:<42}{Colors.BCYAN}|{Colors.RESET}")
-    print(f"  {Colors.BCYAN}|{Colors.BWHITE}  {icons.INFO} Status:  {Colors.BBLUE}Running...{' ' * 33}{Colors.BCYAN}|{Colors.RESET}")
-    print(f"  {Colors.BCYAN}+{'=' * 58}+{Colors.RESET}")
+    print(f"  {Colors.BCYAN}+{'=' * 56}+{Colors.RESET}")
+    print(f"  {Colors.BCYAN}|{Colors.BRED}{Colors.BRIGHT}  {icons.SKULL} SCAN INITIATED {' ' * 39}  {Colors.BCYAN}|{Colors.RESET}")
+    print(f"  {Colors.BCYAN}+{'-' * 56}+{Colors.RESET}")
+    print(f"  {Colors.BCYAN}|{Colors.BWHITE}  {icons.TARGET} Target:  {Colors.BYELLOW}{target:<40}  {Colors.BCYAN}|{Colors.RESET}")
+    print(f"  {Colors.BCYAN}|{Colors.BWHITE}  {icons.TOOL} Tool:    {Colors.BGREEN}{tool:<40}  {Colors.BCYAN}|{Colors.RESET}")
+    print(f"  {Colors.BCYAN}|{Colors.BWHITE}  {icons.INFO} Status:  {Colors.BBLUE}{'Running...':<40}  {Colors.BCYAN}|{Colors.RESET}")
+    print(f"  {Colors.BCYAN}+{'=' * 56}+{Colors.RESET}")
     print()
 
 
 def print_scan_complete(target, results_count):
     """Print scan completed info"""
     print()
-    print(f"  {Colors.BCYAN}+{'=' * 58}+{Colors.RESET}")
-    print(f"  {Colors.BCYAN}|{Colors.BGREEN}  {icons.SUCCESS} SCAN COMPLETED {'-' * 41}{Colors.BCYAN}|{Colors.RESET}")
-    print(f"  {Colors.BCYAN}+{'-' * 58}+{Colors.RESET}")
-    print(f"  {Colors.BCYAN}|{Colors.BWHITE}  {icons.TARGET} Target:  {Colors.BYELLOW}{target:<42}{Colors.BCYAN}|{Colors.RESET}")
-    print(f"  {Colors.BCYAN}|{Colors.BWHITE}  {icons.FILE} Results: {Colors.BGREEN}{str(results_count):<42}{Colors.BCYAN}|{Colors.RESET}")
-    print(f"  {Colors.BCYAN}|{Colors.BWHITE}  {icons.INFO} Status:  {Colors.BGREEN}{'Success!':<42}{Colors.BCYAN}|{Colors.RESET}")
-    print(f"  {Colors.BCYAN}+{'=' * 58}+{Colors.RESET}")
+    print(f"  {Colors.BCYAN}+{'=' * 56}+{Colors.RESET}")
+    print(f"  {Colors.BCYAN}|{Colors.BGREEN}{Colors.BRIGHT}  {icons.SUCCESS} SCAN COMPLETED {' ' * 39}  {Colors.BCYAN}|{Colors.RESET}")
+    print(f"  {Colors.BCYAN}+{'-' * 56}+{Colors.RESET}")
+    print(f"  {Colors.BCYAN}|{Colors.BWHITE}  {icons.TARGET} Target:  {Colors.BYELLOW}{target:<40}  {Colors.BCYAN}|{Colors.RESET}")
+    print(f"  {Colors.BCYAN}|{Colors.BWHITE}  {icons.FILE} Results: {Colors.BGREEN}{str(results_count):<40}  {Colors.BCYAN}|{Colors.RESET}")
+    print(f"  {Colors.BCYAN}|{Colors.BWHITE}  {icons.INFO} Status:  {Colors.BGREEN}{'Success!':<40}  {Colors.BCYAN}|{Colors.RESET}")
+    print(f"  {Colors.BCYAN}+{'=' * 56}+{Colors.RESET}")
     print()
 
 
@@ -316,7 +493,7 @@ def print_header(title):
     """Print header dengan tema"""
     print()
     print(f"  {Colors.BCYAN}{'=' * 60}{Colors.RESET}")
-    print(f"  {Colors.BGREEN}{Colors.BRIGHT}  {icons.SHIELD} {title.upper()}{Colors.RESET}")
+    print(f"  {Colors.BGREEN}{Colors.BRIGHT}  {icons.SKULL} {title.upper()}{Colors.RESET}")
     print(f"  {Colors.BCYAN}{'=' * 60}{Colors.RESET}")
     print()
 
@@ -325,5 +502,27 @@ def print_footer():
     """Print footer"""
     print()
     print(f"  {Colors.BCYAN}{'-' * 60}{Colors.RESET}")
-    print(f"  {Colors.BBLACK}  {icons.SHIELD} BYMA TOOLS v1.0.0 | {icons.INFO} Use responsibly{Colors.RESET}")
+    print(f"  {Colors.BBLACK}  {icons.SKULL} BYMA CYBER v1.0.0 | {icons.INFO} Use responsibly{Colors.RESET}")
     print(f"  {Colors.BCYAN}{'-' * 60}{Colors.RESET}")
+
+
+def print_menu_header():
+    """Print menu header"""
+    print()
+    print(f"  {Colors.BCYAN}+{'=' * 56}+{Colors.RESET}")
+    print(f"  {Colors.BCYAN}|{Colors.BRED}{Colors.BRIGHT}              .---.       .---.              {Colors.BCYAN}|{Colors.RESET}")
+    print(f"  {Colors.BCYAN}|{Colors.BRED}{Colors.BRIGHT}             /     \\     /     \\             {Colors.BCYAN}|{Colors.RESET}")
+    print(f"  {Colors.BCYAN}|{Colors.BRED}{Colors.BRIGHT}            / () () \\   / () () \\            {Colors.BCYAN}|{Colors.RESET}")
+    print(f"  {Colors.BCYAN}|{Colors.BRED}{Colors.BRIGHT}            \\  ___  /   \\  ___  /            {Colors.BCYAN}|{Colors.RESET}")
+    print(f"  {Colors.BCYAN}|{Colors.BRED}{Colors.BRIGHT}             |     |     |     |             {Colors.BCYAN}|{Colors.RESET}")
+    print(f"  {Colors.BCYAN}|{Colors.BRED}{Colors.BRIGHT}             |  _  |     |  _  |             {Colors.BCYAN}|{Colors.RESET}")
+    print(f"  {Colors.BCYAN}|{Colors.BRED}{Colors.BRIGHT}             |_____|     |_____|             {Colors.BCYAN}|{Colors.RESET}")
+    print(f"  {Colors.BCYAN}|{Colors.BGREEN}{Colors.BRIGHT}          ____  ___  ____  ________       {Colors.BCYAN}|{Colors.RESET}")
+    print(f"  {Colors.BCYAN}|{Colors.BGREEN}{Colors.BRIGHT}         | __ )/ _ \\| __ )|__  / _ \\      {Colors.BCYAN}|{Colors.RESET}")
+    print(f"  {Colors.BCYAN}|{Colors.BGREEN}{Colors.BRIGHT}         |  _ \\ | | |  _ \\ / / |_) |     {Colors.BCYAN}|{Colors.RESET}")
+    print(f"  {Colors.BCYAN}|{Colors.BGREEN}{Colors.BRIGHT}         | |_) | |_| | |_) / /|  _ <      {Colors.BCYAN}|{Colors.RESET}")
+    print(f"  {Colors.BCYAN}|{Colors.BGREEN}{Colors.BRIGHT}         |____/ \\___/|____/___|_| \\_\\     {Colors.BCYAN}|{Colors.RESET}")
+    print(f"  {Colors.BCYAN}|{Colors.BYELLOW}{Colors.BRIGHT}              C Y B E R                      {Colors.BCYAN}|{Colors.RESET}")
+    print(f"  {Colors.BCYAN}|{Colors.BWHITE}       Security Toolkit - v1.0.0            {Colors.BCYAN}|{Colors.RESET}")
+    print(f"  {Colors.BCYAN}+{'=' * 56}+{Colors.RESET}")
+    print()
