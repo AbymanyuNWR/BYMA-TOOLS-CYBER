@@ -122,3 +122,6 @@ logger = BYMALogger()
 def get_logger(name="BYMA"):
     """Get logger instance"""
     return logger
+
+
+from core.database import get_database
