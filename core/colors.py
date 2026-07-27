@@ -338,8 +338,13 @@ def print_result(label, value, color=Colors.BWHITE):
     cprint(f"  {icons.ARROW} {Colors.BCYAN}{label}: {color}{value}", Colors.RESET)
 
 
-def print_table(headers, rows, widths=None):
+def print_table(headers_or_table, rows=None, widths=None):
     """Print tabel dengan tema ASCII profesional"""
+    if rows is None:
+        headers = headers_or_table[0]
+        rows = headers_or_table[1:]
+    else:
+        headers = headers_or_table
     if not widths:
         widths = [max(len(str(h)), max((len(str(r[i])) for r in rows), default=0))
                   for i, h in enumerate(headers)]
