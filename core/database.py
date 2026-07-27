@@ -209,6 +209,18 @@ class DatabaseManager:
                     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
+            
+            # Tabel scan_results (generic results from all tools)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS scan_results (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    scan_id INTEGER,
+                    result_type TEXT,
+                    result_data TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (scan_id) REFERENCES scans(id) ON DELETE CASCADE
+                )
+            """)
     
     # ==================== SCAN OPERATIONS ====================
     

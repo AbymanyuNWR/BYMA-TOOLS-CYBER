@@ -5,7 +5,11 @@ Professional file analysis for digital forensics
 import os
 import json
 import hashlib
-import magic
+try:
+    import magic
+    MAGIC_AVAILABLE = True
+except ImportError:
+    MAGIC_AVAILABLE = False
 import struct
 from pathlib import Path
 from datetime import datetime
@@ -270,7 +274,11 @@ class FileAnalyzer:
         
         # MIME type detection
         try:
-            result['mime_type'] = magic.from_file(str(file_path), mime=True)
+            if MAGIC_AVAILABLE:
+                result['mime_type'] = magic.from_file(str(file_path), mime=True)
+            else:
+                import mimetypes
+                result['mime_type'], _ = mimetypes.guess_type(str(file_path))
         except:
             pass
         
