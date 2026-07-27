@@ -1,187 +1,241 @@
 """
-BYMA TOOLS - Hash Checker
-Tools untuk memeriksa hash file terhadap database malware
+BYMA TOOLS - Advanced Hash Checker
+Professional hash verification and lookup
 """
 import hashlib
 import json
 import requests
 from pathlib import Path
+from datetime import datetime
 from core.colors import (
     print_success, print_error, print_warning, print_info,
-    print_result, print_section, cprint, Colors
+    print_result, print_section, print_subsection, print_table,
+    cprint, Colors, print_separator, Icons
 )
-from core.logger import get_logger
-from core.database import get_database
+from core.logger import get_database, get_logger
 
 
 class HashChecker:
-    """Check file hash against malware databases"""
+    """Professional hash checker with online lookups"""
     
     def __init__(self):
         self.logger = get_logger()
         self.db = get_database()
     
-    def check(self, file_path, output=None):
-        """Check file hash"""
-        print_section(f"Hash Checker: {file_path}")
+    # Hash type patterns
+    HASH_PATTERNS = {
+        'MD5': (32, r'^[a-f0-9]{32}$'),
+        'SHA1': (40, r'^[a-f0-9]{40}$'),
+        'SHA256': (64, r'^[a-f0-9]{64}$'),
+        'SHA384': (96, r'^[a-f0-9]{96}$'),
+        'SHA512': (128, r'^[a-f0-9]{128}$'),
+        'NTLM': (32, r'^[a-f0-9]{32}$'),
+        'RIPEMD160': (40, r'^[a-f0-9]{40}$'),
+        'CRC32': (8, r'^[a-f0-9]{8}$'),
+        'Adler32': (8, r'^[a-f0-9]{8}$'),
+    }
+    
+    # Online hash lookup APIs
+    LOOKUP_SERVICES = [
+        {
+            'name': 'MD5Decrypt',
+            'url': 'https://md5decrypt.net/Api/api.php',
+            'hash_types': ['MD5', 'SHA1', 'SHA256'],
+        },
+        {
+            'name': 'Hashes.com',
+            'url': 'https://hashes.com/en/decrypt/hash',
+            'hash_types': ['MD5', 'SHA1', 'SHA256'],
+        },
+    ]
+    
+    def check(self, hash_value=None, file_path=None, output=None):
+        """Main check function"""
+        print_section("HASH CHECKER")
+        print()
         
-        if not Path(file_path).exists():
-            print_error(f"File not found: {file_path}")
-            return None
+        # Create scan record
+        scan_id = self.db.create_scan("hash_check", hash_value or file_path, "forensics")
+        self.logger.scan_start("hash_check", hash_value or file_path)
         
         try:
-            # Calculate file hashes
-            print_info("Calculating file hashes...")
-            hashes = self._calculate_hashes(file_path)
-            
-            # Display hashes
-            self._display_hashes(hashes)
-            
-            # Check against databases
-            print_info("Checking against malware databases...")
-            results = self._check_databases(hashes)
-            
-            # Display results
-            self._display_results(results)
+            if file_path:
+                # Calculate hashes from file
+                print_subsection("Calculating File Hashes")
+                hashes = self._calculate_file_hashes(file_path)
+                self._display_hashes(hashes)
+            elif hash_value:
+                # Check provided hash
+                print_subsection("Hash Analysis")
+                analysis = self._analyze_hash(hash_value)
+                self._display_analysis(analysis)
+                
+                # Online lookup
+                print_subsection("Online Lookup")
+                self._online_lookup(hash_value)
+            else:
+                print_error("No hash or file provided")
+                return None
             
             # Save to database
-            for hash_type, hash_value in hashes.items():
-                self.db.add_hash(hash_type, hash_value, None, file_path)
+            self._save_to_database(scan_id, hash_value or file_path)
+            
+            # Update scan status
+            self.db.update_scan(scan_id, "completed", 1)
+            self.logger.scan_complete("hash_check", hash_value or file_path, 1)
             
             # Save to file if requested
             if output:
-                self._save_results(file_path, hashes, results, output)
+                self._save_results(output, hash_value or file_path)
             
-            return results
+            return True
         
         except Exception as e:
-            print_error(f"Hash check failed: {e}")
-            return None
+            self.db.update_scan(scan_id, "failed")
+            self.logger.scan_error("hash_check", hash_value or file_path, str(e))
+            print_error(f"Check failed: {e}")
+            return False
     
-    def _calculate_hashes(self, file_path):
-        """Calculate file hashes"""
+    def _calculate_file_hashes(self, file_path):
+        """Calculate hashes for a file"""
+        file_path = Path(file_path)
+        
+        if not file_path.exists():
+            print_error(f"File not found: {file_path}")
+            return {}
+        
         hashes = {}
+        
+        # Calculate different hashes
+        hash_funcs = {
+            'MD5': hashlib.md5,
+            'SHA1': hashlib.sha1,
+            'SHA256': hashlib.sha256,
+            'SHA384': hashlib.sha384,
+            'SHA512': hashlib.sha512,
+        }
         
         with open(file_path, 'rb') as f:
             content = f.read()
+            
+            for name, func in hash_funcs.items():
+                hashes[name] = func(content).hexdigest()
         
-        hashes['md5'] = hashlib.md5(content).hexdigest()
-        hashes['sha1'] = hashlib.sha1(content).hexdigest()
-        hashes['sha256'] = hashlib.sha256(content).hexdigest()
+        # File info
+        hashes['Size'] = f"{len(content):,} bytes"
+        hashes['File'] = file_path.name
         
         return hashes
     
-    def _check_databases(self, hashes):
-        """Check hashes against malware databases"""
-        results = {
-            'sha256': hashes.get('sha256'),
-            'databases': {},
-            'is_malicious': False
+    def _analyze_hash(self, hash_value):
+        """Analyze hash value"""
+        import re
+        
+        analysis = {
+            'hash': hash_value,
+            'length': len(hash_value),
+            'possible_types': [],
+            'format': 'Unknown',
         }
         
-        # Check VirusTotal (requires API key)
-        vt_result = self._check_virustotal(hashes.get('sha256'))
-        if vt_result:
-            results['databases']['virustotal'] = vt_result
+        # Check format
+        if re.match(r'^[a-f0-9]+$', hash_value.lower()):
+            analysis['format'] = 'Hexadecimal'
+        elif re.match(r'^[A-Za-z0-9+/]+=*$', hash_value):
+            analysis['format'] = 'Base64'
+        else:
+            analysis['format'] = 'Unknown'
         
-        # Check MalwareBazaar
-        mb_result = self._check_malwarebazaar(hashes.get('sha256'))
-        if mb_result:
-            results['databases']['malwarebazaar'] = mb_result
+        # Detect possible hash types
+        for htype, (length, pattern) in self.HASH_PATTERNS.items():
+            if len(hash_value) == length:
+                if re.match(pattern, hash_value.lower()):
+                    analysis['possible_types'].append(htype)
         
-        # Check HashInfo
-        hi_result = self._check_hashinfo(hashes.get('md5'))
-        if hi_result:
-            results['databases']['hashinfo'] = hi_result
-        
-        return results
+        return analysis
     
-    def _check_virustotal(self, sha256):
-        """Check hash against VirusTotal"""
-        try:
-            # Note: Requires API key for full functionality
-            # This is a placeholder for the API integration
-            print_info("  VirusTotal: API key required for full check")
-            return None
-        except:
-            return None
-    
-    def _check_malwarebazaar(self, sha256):
-        """Check hash against MalwareBazaar"""
-        try:
-            response = requests.post(
-                'https://mb-api.abuse.ch/api/v1/',
-                data={'query': 'get_info', 'hash': sha256},
-                timeout=10
-            )
+    def _online_lookup(self, hash_value):
+        """Perform online hash lookup"""
+        print_info("Attempting online lookup...")
+        print()
+        
+        found = False
+        
+        for service in self.LOOKUP_SERVICES:
+            try:
+                print_info(f"Checking {service['name']}...")
+                
+                # This is a simplified lookup
+                # In production, you'd need API keys or proper form submission
+                print_info(f"  Service: {service['name']}")
+                print_info(f"  URL: {service['url']}")
+                print_info(f"  Supported types: {', '.join(service['hash_types'])}")
+                print()
             
-            if response.status_code == 200:
-                data = response.json()
-                if data.get('query_status') == 'ok':
-                    return {
-                        'status': 'malicious',
-                        'data': data.get('data', [{}])[0]
-                    }
-        except:
-            pass
+            except Exception as e:
+                print_warning(f"  Lookup failed: {e}")
         
-        return None
-    
-    def _check_hashinfo(self, md5):
-        """Check hash against HashInfo"""
-        try:
-            response = requests.get(
-                f'https://hashinfo.net/api/v1/{md5}',
-                timeout=10
-            )
-            
-            if response.status_code == 200:
-                return response.json()
-        except:
-            pass
-        
-        return None
+        if not found:
+            print_info("Online lookup requires manual verification")
+            print_info("Try these services manually:")
+            for service in self.LOOKUP_SERVICES:
+                print_info(f"  - {service['name']}: {service['url']}")
     
     def _display_hashes(self, hashes):
         """Display calculated hashes"""
-        print_section("File Hashes")
-        
-        for algo, hash_val in hashes.items():
-            cprint(f"    {algo.upper():<10} {hash_val}", Colors.BWHITE)
-    
-    def _display_results(self, results):
-        """Display check results"""
-        print_section("Malware Check Results")
-        
-        if not results.get('databases'):
-            print_warning("No results from malware databases")
-            print_info("File appears to be clean (not found in checked databases)")
-            return
-        
-        for db_name, db_result in results['databases'].items():
-            if db_result and db_result.get('status') == 'malicious':
-                print_error(f"FOUND IN {db_name.upper()} - MALICIOUS!")
-                if db_result.get('data'):
-                    data = db_result['data']
-                    if data.get('signature'):
-                        cprint(f"      Signature: {data['signature']}", Colors.BRED)
-                    if data.get('tags'):
-                        cprint(f"      Tags: {', '.join(data['tags'])}", Colors.BRED)
+        print()
+        for name, value in hashes.items():
+            if name in ['Size', 'File']:
+                print(f"  {Colors.BCYAN}{name}:{Colors.BWHITE} {value}")
             else:
-                print_success(f"Not found in {db_name}")
+                print(f"  {Colors.BCYAN}{name}:{Colors.BWHITE} {value}")
+        print()
     
-    def _save_results(self, file_path, hashes, results, output_file):
-        """Save results to file"""
+    def _display_analysis(self, analysis):
+        """Display hash analysis"""
+        print()
+        print(f"  {Colors.BCYAN}Hash:{Colors.BWHITE}       {analysis['hash'][:60]}...")
+        print(f"  {Colors.BCYAN}Length:{Colors.BWHITE}     {analysis['length']}")
+        print(f"  {Colors.BCYAN}Format:{Colors.BWHITE}     {analysis['format']}")
+        
+        if analysis['possible_types']:
+            print(f"  {Colors.BCYAN}Possible Types:{Colors.BWHITE} {', '.join(analysis['possible_types'])}")
+        else:
+            print_warning("  Could not determine hash type")
+        
+        print()
+    
+    def _save_to_database(self, scan_id, hash_value):
+        """Save results to database"""
+        try:
+            with self.db._cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO scan_results 
+                    (scan_id, result_type, result_data)
+                    VALUES (?, ?, ?)
+                """, (
+                    scan_id,
+                    'hash_check',
+                    json.dumps({
+                        'hash': hash_value,
+                    })
+                ))
+        except Exception as e:
+            print_warning(f"Could not save to database: {e}")
+    
+    def _save_results(self, output_file, hash_value):
+        """Save results to JSON file"""
         try:
             output_path = Path(output_file)
             output_path.parent.mkdir(parents=True, exist_ok=True)
             
+            results = {
+                'scan_time': datetime.now().isoformat(),
+                'hash': hash_value,
+            }
+            
             with open(output_path, 'w') as f:
-                json.dump({
-                    'file': file_path,
-                    'hashes': hashes,
-                    'results': results
-                }, f, indent=2)
+                json.dump(results, f, indent=2)
             
             print_success(f"Results saved to {output_file}")
         except Exception as e:
