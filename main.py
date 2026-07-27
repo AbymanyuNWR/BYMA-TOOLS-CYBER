@@ -995,7 +995,7 @@ Examples:
     def _handle_network(self, args):
         """Handle network commands"""
         from tools.network.network_scan import NetworkScanner
-        from tools.network.arp_spoof import ARPSpoof
+        from tools.network.arp_spoof import ARPSpoofer
         from tools.network.packet_sniffer import PacketSniffer
         
         if args.scan:
@@ -1006,13 +1006,13 @@ Examples:
             scanner.scan_ports(args.port, ports=args.ports, output=args.output)
         elif args.sniff:
             sniffer = PacketSniffer()
-            sniffer.sniff(output=args.output)
+            sniffer.capture(output=args.output)
         elif args.arp:
             if not args.target or not args.gateway:
                 print_error("ARP spoofing requires --target and --gateway")
             else:
-                spoofer = ARPSpoof()
-                spoofer.spoof(args.target, args.gateway)
+                spoofer = ARPSpoofer()
+                spoofer.execute(args.target, args.gateway)
         else:
             print_error("Please specify a network tool to use")
     
@@ -1020,7 +1020,7 @@ Examples:
         """Handle password commands"""
         from tools.password.hash_cracker import HashCracker
         from tools.password.password_gen import PasswordGenerator
-        from tools.password.brute_force import BruteForceAttacker
+        from tools.password.brute_force import BruteForcer
         
         if args.hash:
             generator = PasswordGenerator()
@@ -1611,7 +1611,7 @@ Examples:
         try:
             from tools.network.packet_sniffer import PacketSniffer
             sniffer = PacketSniffer()
-            sniffer.sniff()
+            sniffer.capture()
             print_scan_complete("Network", "Completed")
         except Exception as e:
             print_error(f"Error: {e}")
@@ -1635,9 +1635,9 @@ Examples:
         print_scan_start(f"{target} -> {gateway}", "ARP Spoofing")
         
         try:
-            from tools.network.arp_spoof import ARPSpoof
-            spoofer = ARPSpoof()
-            spoofer.spoof(target, gateway)
+            from tools.network.arp_spoof import ARPSpoofer
+            spoofer = ARPSpoofer()
+            spoofer.execute(target, gateway)
             print_scan_complete(target, "Completed")
         except Exception as e:
             print_error(f"Error: {e}")
@@ -1719,8 +1719,8 @@ Examples:
         print_scan_start(target, "Brute Force")
         
         try:
-            from tools.password.brute_force import BruteForceAttacker
-            attacker = BruteForceAttacker()
+            from tools.password.brute_force import BruteForcer
+            attacker = BruteForcer()
             attacker.attack(target)
             print_scan_complete(target, "Completed")
         except Exception as e:
